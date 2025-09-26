@@ -1,13 +1,13 @@
 #![allow(clippy::result_large_err)]
+#![allow(unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("Count3AcZucFDPSFBAeHkQ6AvttieKUkyJ8HiQGhQwe");
+declare_id!("4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE");
 
 #[program]
 pub mod timefun {
-    use anchor_lang::solana_program::stake::state::NEW_WARMUP_COOLDOWN_RATE;
-
     use super::*;
 
     pub fn initialize_platform(ctx: Context<InitializePlatform>, platform_fee_bps: u16) -> Result<()> {
@@ -32,6 +32,7 @@ pub mod timefun {
         creator_profile.max_supply = max_supply;
         creator_profile.total_earned = 0;
         creator_profile.is_active = true;
+        creator_profile.bump = ctx.bumps.creator_profile;
 
         let platform = &mut ctx.accounts.platform;
         platform.total_creators += 1;
@@ -49,7 +50,7 @@ pub mod timefun {
         let creator_revenue = total_cost - platform_fee;
 
         let transfer_to_creator = Transfer {
-            from: ctx.accounts.buyer_token_amount.to_account_info(),
+            from: ctx.accounts.buyer_token_account.to_account_info(),
             to: ctx.accounts.creator_token_account.to_account_info(),
             authority: ctx.accounts.buyer.to_account_info()
         };
@@ -62,7 +63,7 @@ pub mod timefun {
         )?;
 
         let transfer_to_treasury = Transfer { 
-            from: ctx.accounts.treasury_token_account.to_account_info(),
+            from: ctx.accounts.buyer_token_account.to_account_info(),
             to: ctx.accounts.treasury_token_account.to_account_info(),
             authority: ctx.accounts.buyer.to_account_info()
         };
@@ -78,7 +79,7 @@ pub mod timefun {
         let seeds = &[
             b"creator_profile",
             binding.as_ref(),
-            &[ctx.bumps.creator_profile]
+            &[creator_profile.bump]
         ];
         let signer_seeds = &[&seeds[..]];
 
@@ -101,9 +102,107 @@ pub mod timefun {
         Ok(())
     }
 
-    pub fn redeem_time(ctx: Context<RedeemTime>, amount: u64, session_type: SessionType) -> Result<()> {
+    pub fn redeem_time(ctx: Context<RedeemTime>, amount: u64, _session_type: SessionType) -> Result<()> {
+        let creator_profile = &mut ctx.accounts.creator_profile;
+        require!(creator_profile.is_active, TimeFunError::CreatorInactive);
+
+        let burn_tokens = token::Burn {
+            mint: ctx.accounts.time_token_mint.to_account_info(),
+            from: ctx.accounts.user_time_token_account.to_account_info(),
+            authority: ctx.accounts.user.to_account_info()
+        };
+        token::burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                burn_tokens
+            ),
+            amount
+        )?;
+        creator_profile.total_supply -= amount;
         Ok(())
     }
+
+    pub fn create_trade_offer(ctx: Context<CreateTradeOffer>, amount_offered: u64, price_per_token: u64, expires_at: i64) -> Result<()> {
+        let trade_offer = &mut ctx.accounts.trade_offer;
+        trade_offer.seller = ctx.accounts.seller.key();
+        trade_offer.creator_profile = ctx.accounts.creator_profile.key();
+        trade_offer.amount_offered = amount_offered;
+        trade_offer.price_per_token = price_per_token;
+        trade_offer.expires_at = expires_at;
+        trade_offer.is_active = true;
+        Ok(())
+    }
+
+    pub fn accept_trade_offer(ctx: Context<AcceptTradeOffer>) -> Result<()> {
+        let trade_offer = &mut ctx.accounts.trade_offer;
+        require!(trade_offer.is_active, TimeFunError::TradeOfferInactive);
+        require!(Clock::get()?.unix_timestamp < trade_offer.expires_at, TimeFunError::TradeOfferExpired);
+
+        let total_cost = trade_offer.amount_offered * trade_offer.price_per_token;
+
+        let transfer_payment = Transfer {
+            from: ctx.accounts.buyer_token_account.to_account_info(),
+            to: ctx.accounts.seller_token_account.to_account_info(),
+            authority: ctx.accounts.buyer.to_account_info(),
+        };
+
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                transfer_payment,
+            ),
+            total_cost,
+        )?;
+
+        // Transfer time tokens from seller to buyer
+        let transfer_time_tokens = Transfer {
+            from: ctx.accounts.seller_time_token_account.to_account_info(),
+            to: ctx.accounts.buyer_time_token_account.to_account_info(),
+            authority: ctx.accounts.seller.to_account_info(),
+        };
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                transfer_time_tokens,
+            ),
+            trade_offer.amount_offered,
+        )?;
+
+        trade_offer.is_active = false;
+
+        Ok(())
+    }
+
+    pub fn cancel_trade_offer(ctx: Context<CancelTradeOffer>) -> Result<()> {
+        let trade_offer = &mut ctx.accounts.trade_offer;
+        require!(trade_offer.is_active, TimeFunError::TradeOfferInactive);
+        require!(trade_offer.seller == ctx.accounts.seller.key(), TimeFunError::Unauthorized);
+        
+        trade_offer.is_active = false;
+        
+        Ok(())
+    }
+
+    pub fn update_creator_status(ctx: Context<UpdateCreatorStatus>, is_active: bool) -> Result<()> {
+        let creator_profile = &mut ctx.accounts.creator_profile;
+        require!(creator_profile.creator == ctx.accounts.creator.key(), TimeFunError::Unauthorized);
+        
+        creator_profile.is_active = is_active;
+        
+        Ok(())
+    }
+}
+
+fn calculate_bonding_curve_cost(current_supply: u64, amount: u64, base_price: u64) -> u64 {
+    let mut total_cost = 0u64;
+
+    for i in 0..amount {
+        let current_token = current_supply + i;
+        let token_price = base_price + (base_price * current_token) / 1000;
+        total_cost += token_price;
+    }
+
+    total_cost
 }
 
 #[derive(Accounts)]
@@ -168,6 +267,9 @@ pub struct BuyTime<'info> {
 
     #[account(mut)]
     pub buyer: Signer<'info>,
+
+    #[account(mut)]
+    pub buyer_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub buyer_time_token_account: Account<'info, TokenAccount>,
@@ -247,6 +349,23 @@ pub struct AcceptTradeOffer<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct CancelTradeOffer<'info> {
+    #[account(mut)]
+    pub trade_offer: Account<'info, TradeOffer>,
+    
+    #[account(mut)]
+    pub seller: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateCreatorStatus<'info> {
+    #[account(mut)]
+    pub creator_profile: Account<'info, CreatorProfile>,
+    
+    #[account(mut)]
+    pub creator: Signer<'info>,
+}
 
 #[account]
 #[derive(InitSpace)]
@@ -270,6 +389,7 @@ pub struct CreatorProfile {
     pub max_supply: u64,
     pub total_earned: u64,
     pub is_active: bool,
+    pub bump: u8,
 }
 
 #[account]
@@ -302,4 +422,18 @@ pub enum TimeFunError {
     TradeOfferInactive,
     #[msg("Trade offer has expired")]
     TradeOfferExpired,
+    #[msg("Invalid amount - must be greater than 0")]
+    InvalidAmount,
+    #[msg("Invalid price - must be greater than 0")]
+    InvalidPrice,
+    #[msg("Invalid supply - must be greater than 0")]
+    InvalidSupply,
+    #[msg("Invalid fee - cannot exceed 10%")]
+    InvalidFee,
+    #[msg("Invalid expiry time")]
+    InvalidExpiry,
+    #[msg("Unauthorized")]
+    Unauthorized,
+    #[msg("Math overflow")]
+    MathOverflow,
 }

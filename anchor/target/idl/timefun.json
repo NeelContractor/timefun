@@ -1,0 +1,663 @@
+{
+  "address": "4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE",
+  "metadata": {
+    "name": "timefun",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "accept_trade_offer",
+      "discriminator": [
+        47,
+        111,
+        224,
+        26,
+        202,
+        213,
+        193,
+        205
+      ],
+      "accounts": [
+        {
+          "name": "trade_offer",
+          "writable": true
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller"
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_time_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_time_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "buy_time",
+      "discriminator": [
+        10,
+        28,
+        43,
+        89,
+        42,
+        103,
+        15,
+        201
+      ],
+      "accounts": [
+        {
+          "name": "creator_profile",
+          "writable": true
+        },
+        {
+          "name": "time_token_mint",
+          "writable": true
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_time_token_account",
+          "writable": true
+        },
+        {
+          "name": "creator_token_account",
+          "writable": true
+        },
+        {
+          "name": "treasury_token_account",
+          "writable": true
+        },
+        {
+          "name": "platform",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  116,
+                  102,
+                  111,
+                  114,
+                  109
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "cancel_trade_offer",
+      "discriminator": [
+        217,
+        46,
+        97,
+        98,
+        211,
+        188,
+        43,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "trade_offer",
+          "writable": true
+        },
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_creator_profile",
+      "discriminator": [
+        139,
+        244,
+        127,
+        145,
+        95,
+        172,
+        140,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "platform",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  116,
+                  102,
+                  111,
+                  114,
+                  109
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time_token_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "creator_name",
+          "type": "string"
+        },
+        {
+          "name": "price_per_minute",
+          "type": "u64"
+        },
+        {
+          "name": "max_supply",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_trade_offer",
+      "discriminator": [
+        240,
+        221,
+        182,
+        51,
+        162,
+        212,
+        114,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "trade_offer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator_profile"
+        },
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_offered",
+          "type": "u64"
+        },
+        {
+          "name": "price_per_token",
+          "type": "u64"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_platform",
+      "discriminator": [
+        119,
+        201,
+        101,
+        45,
+        75,
+        122,
+        89,
+        3
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "platform",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  116,
+                  102,
+                  111,
+                  114,
+                  109
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform_fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "redeem_time",
+      "discriminator": [
+        190,
+        189,
+        60,
+        65,
+        86,
+        143,
+        182,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "creator_profile",
+          "writable": true
+        },
+        {
+          "name": "time_token_mint",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_time_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "_session_type",
+          "type": {
+            "defined": {
+              "name": "SessionType"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_creator_status",
+      "discriminator": [
+        57,
+        220,
+        131,
+        57,
+        69,
+        104,
+        132,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "creator_profile",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "is_active",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CreatorProfile",
+      "discriminator": [
+        251,
+        250,
+        184,
+        111,
+        214,
+        178,
+        32,
+        221
+      ]
+    },
+    {
+      "name": "Platform",
+      "discriminator": [
+        77,
+        92,
+        204,
+        58,
+        187,
+        98,
+        91,
+        12
+      ]
+    },
+    {
+      "name": "TradeOffer",
+      "discriminator": [
+        240,
+        30,
+        82,
+        234,
+        214,
+        166,
+        118,
+        200
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NameTooLong",
+      "msg": "Creator name is too long"
+    },
+    {
+      "code": 6001,
+      "name": "CreatorInactive",
+      "msg": "Creator is not active"
+    },
+    {
+      "code": 6002,
+      "name": "ExceedsMaxSupply",
+      "msg": "Exceeds maximum supply"
+    },
+    {
+      "code": 6003,
+      "name": "TradeOfferInactive",
+      "msg": "Trade offer is not active"
+    },
+    {
+      "code": 6004,
+      "name": "TradeOfferExpired",
+      "msg": "Trade offer has expired"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount - must be greater than 0"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidPrice",
+      "msg": "Invalid price - must be greater than 0"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidSupply",
+      "msg": "Invalid supply - must be greater than 0"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidFee",
+      "msg": "Invalid fee - cannot exceed 10%"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidExpiry",
+      "msg": "Invalid expiry time"
+    },
+    {
+      "code": 6010,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6011,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "CreatorProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "time_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_per_minute",
+            "type": "u64"
+          },
+          {
+            "name": "total_supply",
+            "type": "u64"
+          },
+          {
+            "name": "max_supply",
+            "type": "u64"
+          },
+          {
+            "name": "total_earned",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Platform",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "treasury_bump",
+            "type": "u8"
+          },
+          {
+            "name": "total_creators",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SessionType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "DirectMessage"
+          },
+          {
+            "name": "VoiceCall"
+          },
+          {
+            "name": "VideoCall"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeOffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_offered",
+            "type": "u64"
+          },
+          {
+            "name": "price_per_token",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}
