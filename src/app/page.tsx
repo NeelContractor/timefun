@@ -1,5 +1,5 @@
-import { DashboardFeature } from '@/components/dashboard/dashboard-feature'
+import Timefun from '@/components/timefun/Timefun'
 
 export default function Home() {
-  return <DashboardFeature />
+  return <Timefun />
 }
