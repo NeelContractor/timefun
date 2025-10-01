@@ -11,7 +11,7 @@ export default function Homepage() {
                 <div className="grid justify-center gap-5">
                     <div className="flex gap-5">
                         <h1 className="text-elements-highem tracking-tight font-[Libre Franklin] text-5xl font-black leading-[48px] text-center md:text-left">TIME IS MONEY.</h1>
-                        <div className="flex border-none rounded-4xl self-center bg-pink-900 p-2">
+                        <div className="flex border-none rounded-4xl self-center bg-pink-900 p-2 font-bold">
                             <Image src={"/arrow.png"} alt="Up Arrow" height={25} width={25} />
                             36%
                         </div>

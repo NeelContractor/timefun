@@ -2,12 +2,13 @@
 #![allow(unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, Burn};
 
 declare_id!("4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE");
 
 #[program]
 pub mod timefun {
+
     use super::*;
 
     pub fn initialize_platform(ctx: Context<InitializePlatform>, platform_fee_bps: u16) -> Result<()> {
@@ -20,7 +21,7 @@ pub mod timefun {
         Ok(())
     }
 
-    pub fn create_creator_profile(ctx: Context<CreateCreatorProfile>, creator_name: String, price_per_minute: u64, max_supply: u64) -> Result<()> {
+    pub fn initialize_creator_profile(ctx: Context<InitializeCreatorProfile>, creator_name: String, price_per_minute: u64, max_supply: u64) -> Result<()> {
         require!(creator_name.len() <= 32, TimeFunError::NameTooLong);
 
         let creator_profile = &mut ctx.accounts.creator_profile;
@@ -191,6 +192,40 @@ pub mod timefun {
         
         Ok(())
     }
+
+    pub fn send_message(ctx: Context<SendMessage>, message_duration_minutes: u64) -> Result<()> {
+        let tracker = &mut ctx.accounts.user_time_tracker;
+        let current_time = Clock::get()?.unix_timestamp;
+
+        let token_balance = ctx.accounts.user_token_account.amount;
+        tracker.available_minutes = token_balance;
+
+        require!(tracker.available_minutes >= message_duration_minutes, TimeFunError::InsufficientTime);
+
+        // burn tokens to consume time
+        let cpi_accounts = Burn {
+            mint: ctx.accounts.time_token_mint.to_account_info(),
+            from: ctx.accounts.user_token_account.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+
+        token::burn(cpi_ctx, message_duration_minutes)?;
+
+        //update tracker
+        tracker.available_minutes = tracker.available_minutes.checked_sub(message_duration_minutes).ok_or(TimeFunError::Underflow)?;
+
+        tracker.used_minutes = tracker.used_minutes.checked_add(message_duration_minutes).ok_or(TimeFunError::Overflow)?;
+        tracker.last_sync = current_time;
+
+        let creator_profile = &mut ctx.accounts.creator_profile;
+        creator_profile.total_supply = creator_profile.total_supply.checked_sub(message_duration_minutes).ok_or(TimeFunError::Underflow)?;
+        creator_profile.total_earned = creator_profile.total_earned.checked_add(message_duration_minutes).ok_or(TimeFunError::Overflow)?;
+
+        Ok(())
+    }
 }
 
 fn calculate_bonding_curve_cost(current_supply: u64, amount: u64, base_price: u64) -> u64 {
@@ -226,7 +261,7 @@ pub struct InitializePlatform<'info> {
 }
 
 #[derive(Accounts)]
-pub struct CreateCreatorProfile<'info> {
+pub struct InitializeCreatorProfile<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
@@ -367,6 +402,41 @@ pub struct UpdateCreatorStatus<'info> {
     pub creator: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct SendMessage<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"creator_profile", creator_profile.creator.as_ref()],
+        bump = creator_profile.bump
+    )]
+    pub creator_profile: Account<'info, CreatorProfile>,
+
+    #[account(
+        mut,
+        seeds = [b"user_tracker", user.key().as_ref(), creator_profile.creator.as_ref()],
+        bump = user_time_tracker.bump,
+        has_one = user
+    )]
+    pub user_time_tracker: Account<'info, UserTimeTracker>,
+
+    #[account(
+        mut,
+        address = creator_profile.time_token_mint,
+    )]
+    pub time_token_mint: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        token::mint = time_token_mint,
+        token::authority = user
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Platform {
@@ -403,6 +473,17 @@ pub struct TradeOffer {
     pub is_active: bool,
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct UserTimeTracker {
+    pub user: Pubkey,
+    pub creator: Pubkey,
+    pub available_minutes: u64,
+    pub used_minutes: u64,
+    pub last_sync: i64,
+    pub bump: u8,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 pub enum SessionType {
     DirectMessage,
@@ -412,28 +493,28 @@ pub enum SessionType {
 
 #[error_code]
 pub enum TimeFunError {
-    #[msg("Creator name is too long")]
+    #[msg("Purchase amount below minimum")]
+    BelowMinimumPurchase,
+    #[msg("Insufficient time available")]
+    InsufficientTime,
+    #[msg("No messaging access - purchase time first")]
+    NoMessagingAccess,
+    #[msg("Overflow error")]
+    Overflow,
+    #[msg("Underflow error")]
+    Underflow,
+    #[msg("Name Too Long")]
     NameTooLong,
-    #[msg("Creator is not active")]
+    #[msg("Creator Inactive")]
     CreatorInactive,
-    #[msg("Exceeds maximum supply")]
+    #[msg("Exceeds Max Supply")]
     ExceedsMaxSupply,
-    #[msg("Trade offer is not active")]
+    #[msg("Trade Offer Inactive")]
     TradeOfferInactive,
-    #[msg("Trade offer has expired")]
+    #[msg("Trade Offer Expired")]
     TradeOfferExpired,
-    #[msg("Invalid amount - must be greater than 0")]
-    InvalidAmount,
-    #[msg("Invalid price - must be greater than 0")]
-    InvalidPrice,
-    #[msg("Invalid supply - must be greater than 0")]
-    InvalidSupply,
-    #[msg("Invalid fee - cannot exceed 10%")]
-    InvalidFee,
-    #[msg("Invalid expiry time")]
-    InvalidExpiry,
     #[msg("Unauthorized")]
     Unauthorized,
-    #[msg("Math overflow")]
+    #[msg("Math Overflow")]
     MathOverflow,
 }
