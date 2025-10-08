@@ -14,189 +14,26 @@ export type Timefun = {
   },
   "instructions": [
     {
-      "name": "acceptTradeOffer",
+      "name": "buyTokens",
       "discriminator": [
-        47,
-        111,
-        224,
-        26,
-        202,
-        213,
-        193,
-        205
+        189,
+        21,
+        230,
+        133,
+        247,
+        2,
+        110,
+        42
       ],
       "accounts": [
-        {
-          "name": "tradeOffer",
-          "writable": true
-        },
         {
           "name": "buyer",
           "writable": true,
           "signer": true
         },
-        {
-          "name": "seller"
-        },
-        {
-          "name": "buyerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "sellerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "buyerTimeTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "sellerTimeTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "buyTime",
-      "discriminator": [
-        10,
-        28,
-        43,
-        89,
-        42,
-        103,
-        15,
-        201
-      ],
-      "accounts": [
-        {
-          "name": "creatorProfile",
-          "writable": true
-        },
-        {
-          "name": "timeTokenMint",
-          "writable": true
-        },
-        {
-          "name": "buyer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "buyerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "buyerTimeTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "creatorTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "treasuryTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "platform",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  108,
-                  97,
-                  116,
-                  102,
-                  111,
-                  114,
-                  109
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "cancelTradeOffer",
-      "discriminator": [
-        217,
-        46,
-        97,
-        98,
-        211,
-        188,
-        43,
-        171
-      ],
-      "accounts": [
-        {
-          "name": "tradeOffer",
-          "writable": true
-        },
-        {
-          "name": "seller",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "createCreatorProfile",
-      "discriminator": [
-        139,
-        244,
-        127,
-        145,
-        95,
-        172,
-        140,
-        154
-      ],
-      "accounts": [
         {
           "name": "creator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "platform",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  108,
-                  97,
-                  116,
-                  102,
-                  111,
-                  114,
-                  109
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "creatorProfile",
@@ -231,121 +68,128 @@ export type Timefun = {
           }
         },
         {
-          "name": "timeTokenMint",
+          "name": "creatorTokenMint",
+          "writable": true
+        },
+        {
+          "name": "buyerTokenAccount",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creatorTokenMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "creatorName",
-          "type": "string"
-        },
-        {
-          "name": "pricePerMinute",
-          "type": "u64"
-        },
-        {
-          "name": "maxSupply",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "createTradeOffer",
-      "discriminator": [
-        240,
-        221,
-        182,
-        51,
-        162,
-        212,
-        114,
-        220
-      ],
-      "accounts": [
-        {
-          "name": "tradeOffer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "creatorProfile"
-        },
-        {
-          "name": "seller",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "amountOffered",
-          "type": "u64"
-        },
-        {
-          "name": "pricePerToken",
-          "type": "u64"
-        },
-        {
-          "name": "expiresAt",
-          "type": "i64"
-        }
-      ]
-    },
-    {
-      "name": "initializePlatform",
-      "discriminator": [
-        119,
-        201,
-        101,
-        45,
-        75,
-        122,
-        89,
-        3
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "platform",
+          "name": "vault",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  108,
+                  118,
                   97,
-                  116,
-                  102,
-                  111,
-                  114,
-                  109
+                  117,
+                  108,
+                  116
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
               }
             ]
           }
         },
         {
-          "name": "treasury"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
           "name": "systemProgram",
@@ -354,93 +198,692 @@ export type Timefun = {
       ],
       "args": [
         {
-          "name": "platformFeeBps",
-          "type": "u16"
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
     {
-      "name": "redeemTime",
+      "name": "creatorReplyBack",
       "discriminator": [
-        190,
-        189,
-        60,
-        65,
-        86,
-        143,
-        182,
-        102
+        249,
+        24,
+        156,
+        62,
+        125,
+        93,
+        213,
+        36
       ],
       "accounts": [
         {
-          "name": "creatorProfile",
-          "writable": true
-        },
-        {
-          "name": "timeTokenMint",
-          "writable": true
-        },
-        {
-          "name": "user",
+          "name": "creator",
           "writable": true,
           "signer": true
         },
         {
-          "name": "userTimeTokenAccount",
-          "writable": true
+          "name": "user"
+        },
+        {
+          "name": "creatorProfile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "conversation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  118,
+                  101,
+                  114,
+                  115,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "messageContent",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initializeCreator",
+      "discriminator": [
+        29,
+        153,
+        44,
+        99,
+        52,
+        172,
+        81,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creatorProfile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creatorTokenMint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "basePrice",
+          "type": "u64"
+        },
+        {
+          "name": "charsPerToken",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "sellTokens",
+      "discriminator": [
+        114,
+        242,
+        25,
+        12,
+        62,
+        126,
+        92,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator",
+          "writable": true
+        },
+        {
+          "name": "creatorProfile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creatorTokenMint",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creatorTokenMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "sessionType",
-          "type": {
-            "defined": {
-              "name": "sessionType"
-            }
-          }
         }
       ]
     },
     {
-      "name": "updateCreatorStatus",
+      "name": "sendMessage",
       "discriminator": [
         57,
-        220,
-        131,
-        57,
-        69,
-        104,
-        132,
-        230
+        40,
+        34,
+        178,
+        189,
+        10,
+        65,
+        26
       ],
       "accounts": [
         {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator"
+        },
+        {
           "name": "creatorProfile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creatorTokenMint",
           "writable": true
         },
         {
-          "name": "creator",
+          "name": "userTokenAccount",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creatorTokenMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "conversation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  118,
+                  101,
+                  114,
+                  115,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "isActive",
-          "type": "bool"
+          "name": "messageContent",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "withdrawFromVault",
+      "discriminator": [
+        180,
+        34,
+        37,
+        46,
+        156,
+        0,
+        211,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creatorProfile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     }
   ],
   "accounts": [
+    {
+      "name": "conversation",
+      "discriminator": [
+        171,
+        46,
+        180,
+        58,
+        245,
+        221,
+        103,
+        174
+      ]
+    },
     {
       "name": "creatorProfile",
       "discriminator": [
@@ -453,97 +896,112 @@ export type Timefun = {
         32,
         221
       ]
-    },
+    }
+  ],
+  "events": [
     {
-      "name": "platform",
+      "name": "messageSent",
       "discriminator": [
-        77,
-        92,
-        204,
-        58,
-        187,
-        98,
-        91,
-        12
-      ]
-    },
-    {
-      "name": "tradeOffer",
-      "discriminator": [
-        240,
-        30,
-        82,
-        234,
-        214,
-        166,
-        118,
-        200
+        116,
+        70,
+        224,
+        76,
+        128,
+        28,
+        110,
+        55
       ]
     }
   ],
   "errors": [
     {
       "code": 6000,
-      "name": "nameTooLong",
-      "msg": "Creator name is too long"
+      "name": "insufficientWords",
+      "msg": "Insufficient word balance"
     },
     {
       "code": 6001,
-      "name": "creatorInactive",
-      "msg": "Creator is not active"
+      "name": "insufficientTime",
+      "msg": "Insufficient time balance"
     },
     {
       "code": 6002,
-      "name": "exceedsMaxSupply",
-      "msg": "Exceeds maximum supply"
+      "name": "insufficientTokens",
+      "msg": "Insufficient token balance"
     },
     {
       "code": 6003,
-      "name": "tradeOfferInactive",
-      "msg": "Trade offer is not active"
+      "name": "sessionNotActive",
+      "msg": "Session is not active"
     },
     {
       "code": 6004,
-      "name": "tradeOfferExpired",
-      "msg": "Trade offer has expired"
+      "name": "overflow",
+      "msg": "Arithmetic overflow"
     },
     {
       "code": 6005,
-      "name": "invalidAmount",
-      "msg": "Invalid amount - must be greater than 0"
+      "name": "underflow",
+      "msg": "Arithmetic underflow"
     },
     {
       "code": 6006,
-      "name": "invalidPrice",
-      "msg": "Invalid price - must be greater than 0"
+      "name": "mathError",
+      "msg": "mathError"
     },
     {
       "code": 6007,
-      "name": "invalidSupply",
-      "msg": "Invalid supply - must be greater than 0"
-    },
-    {
-      "code": 6008,
-      "name": "invalidFee",
-      "msg": "Invalid fee - cannot exceed 10%"
-    },
-    {
-      "code": 6009,
-      "name": "invalidExpiry",
-      "msg": "Invalid expiry time"
-    },
-    {
-      "code": 6010,
       "name": "unauthorized",
       "msg": "unauthorized"
     },
     {
-      "code": 6011,
-      "name": "mathOverflow",
-      "msg": "Math overflow"
+      "code": 6008,
+      "name": "conversationNotInitialized",
+      "msg": "Conversation not initialized"
+    },
+    {
+      "code": 6009,
+      "name": "insufficientVaultBalance",
+      "msg": "Insufficient vault balance"
     }
   ],
   "types": [
+    {
+      "name": "conversation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "lastMessageFrom",
+            "type": {
+              "defined": {
+                "name": "messageSender"
+              }
+            }
+          },
+          {
+            "name": "lastMessageTime",
+            "type": "i64"
+          },
+          {
+            "name": "totalMessages",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "creatorProfile",
       "type": {
@@ -554,32 +1012,20 @@ export type Timefun = {
             "type": "pubkey"
           },
           {
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "name": "timeTokenMint",
+            "name": "creatorTokenMint",
             "type": "pubkey"
           },
           {
-            "name": "pricePerMinute",
+            "name": "basePerToken",
+            "type": "u64"
+          },
+          {
+            "name": "charsPerToken",
             "type": "u64"
           },
           {
             "name": "totalSupply",
             "type": "u64"
-          },
-          {
-            "name": "maxSupply",
-            "type": "u64"
-          },
-          {
-            "name": "totalEarned",
-            "type": "u64"
-          },
-          {
-            "name": "isActive",
-            "type": "bool"
           },
           {
             "name": "bump",
@@ -589,78 +1035,47 @@ export type Timefun = {
       }
     },
     {
-      "name": "platform",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "treasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "platformFeeBps",
-            "type": "u16"
-          },
-          {
-            "name": "treasuryBump",
-            "type": "u8"
-          },
-          {
-            "name": "totalCreators",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "sessionType",
+      "name": "messageSender",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "directMessage"
+            "name": "user"
           },
           {
-            "name": "voiceCall"
-          },
-          {
-            "name": "videoCall"
+            "name": "creator"
           }
         ]
       }
     },
     {
-      "name": "tradeOffer",
+      "name": "messageSent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "seller",
+            "name": "conversation",
             "type": "pubkey"
           },
           {
-            "name": "creatorProfile",
+            "name": "sender",
             "type": "pubkey"
           },
           {
-            "name": "amountOffered",
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "message",
+            "type": "string"
+          },
+          {
+            "name": "tokensBurned",
             "type": "u64"
           },
           {
-            "name": "pricePerToken",
-            "type": "u64"
-          },
-          {
-            "name": "expiresAt",
+            "name": "timestamp",
             "type": "i64"
-          },
-          {
-            "name": "isActive",
-            "type": "bool"
           }
         ]
       }

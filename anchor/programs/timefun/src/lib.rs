@@ -2,274 +2,311 @@
 #![allow(unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, Burn};
+use anchor_spl::{
+    associated_token::AssociatedToken, 
+    token::{self, Burn, Mint, MintTo, Token, TokenAccount}
+};
 
 declare_id!("4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE");
 
 #[program]
 pub mod timefun {
-
     use super::*;
 
-    pub fn initialize_platform(ctx: Context<InitializePlatform>, platform_fee_bps: u16) -> Result<()> {
-        let platform = &mut ctx.accounts.platform;
-        platform.authority = ctx.accounts.authority.key();
-        platform.treasury = ctx.accounts.treasury.key();
-        platform.platform_fee_bps = platform_fee_bps;
-        platform.treasury_bump = ctx.bumps.platform;
-        platform.total_creators = 0;
-        Ok(())
-    }
-
-    pub fn initialize_creator_profile(ctx: Context<InitializeCreatorProfile>, creator_name: String, price_per_minute: u64, max_supply: u64) -> Result<()> {
-        require!(creator_name.len() <= 32, TimeFunError::NameTooLong);
-
+    pub fn initialize_creator(
+        ctx: Context<InitializeCreatorProfile>,
+        base_price: u64,
+        chars_per_token: u64,
+    ) -> Result<()> {
         let creator_profile = &mut ctx.accounts.creator_profile;
         creator_profile.creator = ctx.accounts.creator.key();
-        creator_profile.name = creator_name;
-        creator_profile.time_token_mint = ctx.accounts.time_token_mint.key();
-        creator_profile.price_per_minute = price_per_minute;
+        creator_profile.creator_token_mint = ctx.accounts.creator_token_mint.key();
+        creator_profile.base_per_token = base_price;
+        creator_profile.chars_per_token = chars_per_token;
         creator_profile.total_supply = 0;
-        creator_profile.max_supply = max_supply;
-        creator_profile.total_earned = 0;
-        creator_profile.is_active = true;
         creator_profile.bump = ctx.bumps.creator_profile;
-
-        let platform = &mut ctx.accounts.platform;
-        platform.total_creators += 1;
         Ok(())
     }
 
-    pub fn buy_time(ctx: Context<BuyTime>, amount: u64) -> Result<()> {
+    pub fn buy_tokens(
+        ctx: Context<BuyTokens>,
+        amount: u64,
+    ) -> Result<()> {
         let creator_profile = &mut ctx.accounts.creator_profile;
-        require!(creator_profile.is_active, TimeFunError::CreatorInactive);
-        require!(creator_profile.total_supply + amount <= creator_profile.max_supply, TimeFunError::ExceedsMaxSupply);
-
-        let total_cost = calculate_bonding_curve_cost(creator_profile.total_supply, amount, creator_profile.price_per_minute);
-
-        let platform_fee = (total_cost * ctx.accounts.platform.platform_fee_bps as u64) / 10000;
-        let creator_revenue = total_cost - platform_fee;
-
-        let transfer_to_creator = Transfer {
-            from: ctx.accounts.buyer_token_account.to_account_info(),
-            to: ctx.accounts.creator_token_account.to_account_info(),
-            authority: ctx.accounts.buyer.to_account_info()
-        };
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(), 
-                transfer_to_creator,
-            ),
-            creator_revenue,
+        
+        // Calculate price with bonding curve logic
+        let price = calculate_buy_price(
+            creator_profile.total_supply,
+            amount,
+            creator_profile.base_per_token
         )?;
-
-        let transfer_to_treasury = Transfer { 
-            from: ctx.accounts.buyer_token_account.to_account_info(),
-            to: ctx.accounts.treasury_token_account.to_account_info(),
-            authority: ctx.accounts.buyer.to_account_info()
-        };
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                transfer_to_treasury,
-            ),
-            platform_fee
-        )?;
-
-        let binding = creator_profile.creator.key();
+        
+        // Transfer SOL from buyer to creator
+        let cpi_context = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.buyer.to_account_info(),
+                to: ctx.accounts.vault.to_account_info(),
+            },
+        );
+        anchor_lang::system_program::transfer(cpi_context, price)?;
+        
+        // Mint tokens to buyer
+        let creator_key = creator_profile.creator;
         let seeds = &[
             b"creator_profile",
-            binding.as_ref(),
-            &[creator_profile.bump]
+            creator_key.as_ref(),
+            &[creator_profile.bump],
         ];
-        let signer_seeds = &[&seeds[..]];
-
-        let mint_to_buyer = token::MintTo {
-            mint: ctx.accounts.time_token_mint.to_account_info(),
-            to: ctx.accounts.buyer_time_token_account.to_account_info(),
-            authority: creator_profile.to_account_info()
+        let signer = &[&seeds[..]];
+        
+        let cpi_accounts = MintTo {
+            mint: ctx.accounts.creator_token_mint.to_account_info(),
+            to: ctx.accounts.buyer_token_account.to_account_info(),
+            authority: creator_profile.to_account_info(),
         };
-        token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(), 
-                mint_to_buyer,
-                signer_seeds
-            ),
-            amount
-        )?;
-
-        creator_profile.total_supply += amount;
-        creator_profile.total_earned += creator_revenue;
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        
+        token::mint_to(cpi_ctx, amount)?;
+        
+        // Update total supply
+        creator_profile.total_supply = creator_profile.total_supply
+            .checked_add(amount)
+            .ok_or(TimeFunError::Overflow)?;
+        
         Ok(())
     }
 
-    pub fn redeem_time(ctx: Context<RedeemTime>, amount: u64, _session_type: SessionType) -> Result<()> {
+    pub fn sell_tokens(
+        ctx: Context<SellTokens>,
+        amount: u64,
+    ) -> Result<()> {
         let creator_profile = &mut ctx.accounts.creator_profile;
-        require!(creator_profile.is_active, TimeFunError::CreatorInactive);
-
-        let burn_tokens = token::Burn {
-            mint: ctx.accounts.time_token_mint.to_account_info(),
-            from: ctx.accounts.user_time_token_account.to_account_info(),
-            authority: ctx.accounts.user.to_account_info()
-        };
-        token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                burn_tokens
-            ),
-            amount
-        )?;
-        creator_profile.total_supply -= amount;
-        Ok(())
-    }
-
-    pub fn create_trade_offer(ctx: Context<CreateTradeOffer>, amount_offered: u64, price_per_token: u64, expires_at: i64) -> Result<()> {
-        let trade_offer = &mut ctx.accounts.trade_offer;
-        trade_offer.seller = ctx.accounts.seller.key();
-        trade_offer.creator_profile = ctx.accounts.creator_profile.key();
-        trade_offer.amount_offered = amount_offered;
-        trade_offer.price_per_token = price_per_token;
-        trade_offer.expires_at = expires_at;
-        trade_offer.is_active = true;
-        Ok(())
-    }
-
-    pub fn accept_trade_offer(ctx: Context<AcceptTradeOffer>) -> Result<()> {
-        let trade_offer = &mut ctx.accounts.trade_offer;
-        require!(trade_offer.is_active, TimeFunError::TradeOfferInactive);
-        require!(Clock::get()?.unix_timestamp < trade_offer.expires_at, TimeFunError::TradeOfferExpired);
-
-        let total_cost = trade_offer.amount_offered * trade_offer.price_per_token;
-
-        let transfer_payment = Transfer {
-            from: ctx.accounts.buyer_token_account.to_account_info(),
-            to: ctx.accounts.seller_token_account.to_account_info(),
-            authority: ctx.accounts.buyer.to_account_info(),
-        };
-
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                transfer_payment,
-            ),
-            total_cost,
+        
+        // Calculate refund price (slightly lower than buy price)
+        let refund = calculate_sell_price(
+            creator_profile.total_supply,
+            amount,
+            creator_profile.base_per_token
         )?;
 
-        // Transfer time tokens from seller to buyer
-        let transfer_time_tokens = Transfer {
-            from: ctx.accounts.seller_time_token_account.to_account_info(),
-            to: ctx.accounts.buyer_time_token_account.to_account_info(),
+        // Check vault has enough SOL
+        let vault_balance = ctx.accounts.vault.lamports();
+        require!(
+            vault_balance >= refund,
+            TimeFunError::InsufficientVaultBalance
+        );
+        
+        // Burn tokens from seller
+        let cpi_accounts = Burn {
+            mint: ctx.accounts.creator_token_mint.to_account_info(),
+            from: ctx.accounts.seller_token_account.to_account_info(),
             authority: ctx.accounts.seller.to_account_info(),
         };
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                transfer_time_tokens,
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        
+        token::burn(cpi_ctx, amount)?;
+
+        // Transfer SOL refund from vault to seller using invoke_signed
+        let creator_key = creator_profile.creator;
+        let vault_seeds = &[
+            b"vault",
+            creator_key.as_ref(),
+            &[ctx.bumps.vault],
+        ];
+        let vault_signer = &[&vault_seeds[..]];
+
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.seller.to_account_info(),
+                },
+                vault_signer,
             ),
-            trade_offer.amount_offered,
+            refund,
         )?;
-
-        trade_offer.is_active = false;
-
-        Ok(())
-    }
-
-    pub fn cancel_trade_offer(ctx: Context<CancelTradeOffer>) -> Result<()> {
-        let trade_offer = &mut ctx.accounts.trade_offer;
-        require!(trade_offer.is_active, TimeFunError::TradeOfferInactive);
-        require!(trade_offer.seller == ctx.accounts.seller.key(), TimeFunError::Unauthorized);
         
-        trade_offer.is_active = false;
+        // Update total supply
+        creator_profile.total_supply = creator_profile.total_supply
+            .checked_sub(amount)
+            .ok_or(TimeFunError::Underflow)?;
         
         Ok(())
     }
 
-    pub fn update_creator_status(ctx: Context<UpdateCreatorStatus>, is_active: bool) -> Result<()> {
-        let creator_profile = &mut ctx.accounts.creator_profile;
-        require!(creator_profile.creator == ctx.accounts.creator.key(), TimeFunError::Unauthorized);
+    pub fn send_message(
+        ctx: Context<SendMessage>,
+        message_content: String,
+    ) -> Result<()> {
+        let creator_profile = &ctx.accounts.creator_profile;
+        let message_length = message_content.len() as u64;
         
-        creator_profile.is_active = is_active;
+        // Calculate required tokens based on message length
+        let tokens_required = (message_length + creator_profile.chars_per_token - 1) 
+            / creator_profile.chars_per_token;
         
-        Ok(())
-    }
-
-    pub fn send_message(ctx: Context<SendMessage>, message_duration_minutes: u64) -> Result<()> {
-        let tracker = &mut ctx.accounts.user_time_tracker;
-        let current_time = Clock::get()?.unix_timestamp;
-
-        let token_balance = ctx.accounts.user_token_account.amount;
-        tracker.available_minutes = token_balance;
-
-        require!(tracker.available_minutes >= message_duration_minutes, TimeFunError::InsufficientTime);
-
-        // burn tokens to consume time
+        // Check if user has enough tokens
+        require!(
+            ctx.accounts.user_token_account.amount >= tokens_required,
+            TimeFunError::InsufficientTokens
+        );
+        
+        // Burn tokens (consume them)
         let cpi_accounts = Burn {
-            mint: ctx.accounts.time_token_mint.to_account_info(),
+            mint: ctx.accounts.creator_token_mint.to_account_info(),
             from: ctx.accounts.user_token_account.to_account_info(),
             authority: ctx.accounts.user.to_account_info(),
         };
-
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        
+        token::burn(cpi_ctx, tokens_required)?;
+        
+        // Store/Update message in conversation account
+        let conversation = &mut ctx.accounts.conversation;
+        
+        // Check if conversation is being initialized or already exists
+        let is_new = conversation.user == Pubkey::default();
+        
+        if is_new {
+            // First message - initialize conversation
+            conversation.user = ctx.accounts.user.key();
+            conversation.creator = creator_profile.creator;
+            conversation.total_messages = 1;
+            conversation.bump = ctx.bumps.conversation;
+        } else {
+            // Subsequent message - increment counter
+            conversation.total_messages = conversation.total_messages
+                .checked_add(1)
+                .ok_or(TimeFunError::Overflow)?;
+        }
+        
+        conversation.last_message_from = MessageSender::User;
+        conversation.last_message_time = Clock::get()?.unix_timestamp;
+        
+        // Emit event for off-chain indexing (for message storage in DB)
+        emit!(MessageSent {
+            conversation: ctx.accounts.conversation.key(),
+            sender: ctx.accounts.user.key(),
+            recipient: creator_profile.creator,
+            message: message_content,
+            tokens_burned: tokens_required,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+        
+        Ok(())
+    }
 
-        token::burn(cpi_ctx, message_duration_minutes)?;
+    // Creator can withdraw SOL from vault
+    pub fn withdraw_from_vault(
+        ctx: Context<WithdrawFromVault>,
+        amount: u64,
+    ) -> Result<()> {
+        let vault_balance = ctx.accounts.vault.lamports();
+        
+        require!(
+            vault_balance >= amount,
+            TimeFunError::InsufficientVaultBalance
+        );
+        // Transfer SOL from vault to creator using invoke_signed
+        let creator_key = ctx.accounts.creator.key();
+        let vault_seeds = &[
+            b"vault",
+            creator_key.as_ref(),
+            &[ctx.bumps.vault],
+        ];
+        let vault_signer = &[&vault_seeds[..]];
+        
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.creator.to_account_info(),
+                },
+                vault_signer,
+            ),
+            amount,
+        )?;
 
-        //update tracker
-        tracker.available_minutes = tracker.available_minutes.checked_sub(message_duration_minutes).ok_or(TimeFunError::Underflow)?;
+        Ok(())
+    }
 
-        tracker.used_minutes = tracker.used_minutes.checked_add(message_duration_minutes).ok_or(TimeFunError::Overflow)?;
-        tracker.last_sync = current_time;
-
-        let creator_profile = &mut ctx.accounts.creator_profile;
-        creator_profile.total_supply = creator_profile.total_supply.checked_sub(message_duration_minutes).ok_or(TimeFunError::Underflow)?;
-        creator_profile.total_earned = creator_profile.total_earned.checked_add(message_duration_minutes).ok_or(TimeFunError::Overflow)?;
-
+    // Creator replies without burning tokens (they own the tokens)
+    // Creators DON'T need to own tokens to reply - it's completely FREE
+    pub fn creator_reply_back(
+        ctx: Context<CreatorReplyBack>,
+        message_content: String,
+    ) -> Result<()> {
+        let conversation = &mut ctx.accounts.conversation;
+        
+        // Verify creator is replying to their own conversation
+        require!(
+            conversation.creator == ctx.accounts.creator.key(),
+            TimeFunError::Unauthorized
+        );
+        
+        // Verify conversation exists and has been initialized
+        require!(
+            conversation.user != Pubkey::default(),
+            TimeFunError::ConversationNotInitialized
+        );
+        
+        // NO TOKEN CHECK - Creators reply completely FREE
+        // NO TOKEN BURNING - This is a service they provide
+        // NO SOL COST - Only blockchain transaction fee
+        
+        // Update conversation metadata
+        conversation.last_message_from = MessageSender::Creator;
+        conversation.last_message_time = Clock::get()?.unix_timestamp;
+        conversation.total_messages = conversation.total_messages
+            .checked_add(1)
+            .ok_or(TimeFunError::Overflow)?;
+        
+        // Emit event for off-chain storage in database
+        // tokensBurned = 0 indicates this is a creator reply
+        emit!(MessageSent {
+            conversation: conversation.key(),
+            sender: ctx.accounts.creator.key(),
+            recipient: conversation.user,
+            message: message_content,
+            tokens_burned: 0, // ZERO - creators don't burn tokens
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+        
         Ok(())
     }
 }
 
-fn calculate_bonding_curve_cost(current_supply: u64, amount: u64, base_price: u64) -> u64 {
-    let mut total_cost = 0u64;
-
-    for i in 0..amount {
-        let current_token = current_supply + i;
-        let token_price = base_price + (base_price * current_token) / 1000;
-        total_cost += token_price;
-    }
-
-    total_cost
+// Bonding curve: price increases as supply increases
+fn calculate_buy_price(current_supply: u64, amount: u64, base_price: u64) -> Result<u64> {
+    // Simple linear bonding curve: price = base_price * (1 + supply/1000)
+    let new_supply = current_supply.checked_add(amount).ok_or(TimeFunError::Overflow)?;
+    let avg_supply = (current_supply + new_supply) / 2;
+    let multiplier = 1000 + (avg_supply / 100); // Increases 1% per 100 tokens
+    let price = (base_price as u128)
+        .checked_mul(amount as u128)
+        .and_then(|p| p.checked_mul(multiplier as u128))
+        .and_then(|p| p.checked_div(1000))
+        .ok_or(TimeFunError::Overflow)?;
+    
+    Ok(price as u64)
 }
 
-#[derive(Accounts)]
-pub struct InitializePlatform<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(
-        init,
-        payer = authority,
-        space = 8 + Platform::INIT_SPACE,
-        seeds = [b"platform"],
-        bump
-    )]
-    pub platform: Account<'info, Platform>,
-
-    /// CHECK: Treasury account
-    pub treasury: AccountInfo<'info>,
-
-    pub system_program: Program<'info, System>,
+fn calculate_sell_price(current_supply: u64, amount: u64, base_price: u64) -> Result<u64> {
+    // 95% of buy price to prevent arbitrage
+    let buy_price = calculate_buy_price(current_supply.saturating_sub(amount), amount, base_price)?;
+    Ok((buy_price as u128 * 95 / 100) as u64)
 }
 
 #[derive(Accounts)]
 pub struct InitializeCreatorProfile<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
-
-    #[account(
-        seeds = [b"platform"],
-        bump = platform.treasury_bump
-    )]
-    pub platform: Account<'info, Platform>,
 
     #[account(
         init,
@@ -283,238 +320,248 @@ pub struct InitializeCreatorProfile<'info> {
     #[account(
         init,
         payer = creator,
-        mint::decimals = 0,
+        mint::decimals = 6,
         mint::authority = creator_profile,
+        seeds = [b"creator_token_mint", creator.key().as_ref()],
+        bump
     )]
-    pub time_token_mint: Account<'info, Mint>,
+    pub creator_token_mint: Account<'info, Mint>,
 
-    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-pub struct BuyTime<'info> {
-    #[account(mut)]
-    pub creator_profile: Account<'info, CreatorProfile>,
-
-    #[account(mut)]
-    pub time_token_mint: Account<'info, Mint>,
-
+pub struct BuyTokens<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
-
+    
+    /// CHECK: Creator receives SOL payment
     #[account(mut)]
+    pub creator: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        seeds = [b"creator_profile", creator.key().as_ref()],
+        bump = creator_profile.bump
+    )]
+    pub creator_profile: Account<'info, CreatorProfile>,
+    
+    #[account(
+        mut,
+        address = creator_profile.creator_token_mint
+    )]
+    pub creator_token_mint: Account<'info, Mint>,
+    
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        associated_token::mint = creator_token_mint,
+        associated_token::authority = buyer
+    )]
     pub buyer_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
-    pub buyer_time_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub creator_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub treasury_token_account: Account<'info, TokenAccount>,
-
+    /// CHECK: Vault PDA to hold SOL (program-controlled)
     #[account(
-        seeds = [b"platform"],
-        bump = platform.treasury_bump
+        mut,
+        seeds = [b"vault", creator.key().as_ref()],
+        bump
     )]
-    pub platform: Account<'info, Platform>,
+    pub vault: AccountInfo<'info>,
+    
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct RedeemTime<'info> {
-    #[account(mut)]
-    pub creator_profile: Account<'info, CreatorProfile>,
-
-    #[account(mut)]
-    pub time_token_mint: Account<'info, Mint>,
-
-    #[account(mut)]
-    pub user: Signer<'info>,
-
-    #[account(mut)]
-    pub user_time_token_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-
-#[derive(Accounts)]
-pub struct CreateTradeOffer<'info> {
-    #[account(
-        init,
-        payer = seller,
-        space = TradeOffer::INIT_SPACE,
-    )]
-    pub trade_offer: Account<'info, TradeOffer>,
-    
-    pub creator_profile: Account<'info, CreatorProfile>,
-    
+pub struct SellTokens<'info> {
     #[account(mut)]
     pub seller: Signer<'info>,
     
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct AcceptTradeOffer<'info> {
+    /// CHECK: Creator pays refund
     #[account(mut)]
-    pub trade_offer: Account<'info, TradeOffer>,
+    pub creator: AccountInfo<'info>,
     
-    #[account(mut)]
-    pub buyer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"creator_profile", creator.key().as_ref()],
+        bump = creator_profile.bump
+    )]
+    pub creator_profile: Account<'info, CreatorProfile>,
     
-    /// CHECK: Seller account
-    pub seller: AccountInfo<'info>,
+    #[account(
+        mut,
+        address = creator_profile.creator_token_mint
+    )]
+    pub creator_token_mint: Account<'info, Mint>,
     
-    #[account(mut)]
-    pub buyer_token_account: Account<'info, TokenAccount>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        associated_token::mint = creator_token_mint,
+        associated_token::authority = seller
+    )]
     pub seller_token_account: Account<'info, TokenAccount>,
-    
-    #[account(mut)]
-    pub buyer_time_token_account: Account<'info, TokenAccount>,
-    
-    #[account(mut)]
-    pub seller_time_token_account: Account<'info, TokenAccount>,
+
+    /// CHECK: Vault PDA to refund SOL from (program-controlled)
+    #[account(
+        mut,
+        seeds = [b"vault", creator.key().as_ref()],
+        bump
+    )]
+    pub vault: AccountInfo<'info>,
     
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct CancelTradeOffer<'info> {
-    #[account(mut)]
-    pub trade_offer: Account<'info, TradeOffer>,
-    
-    #[account(mut)]
-    pub seller: Signer<'info>,
-}
 
 #[derive(Accounts)]
-pub struct UpdateCreatorStatus<'info> {
-    #[account(mut)]
-    pub creator_profile: Account<'info, CreatorProfile>,
-    
+pub struct WithdrawFromVault<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
+    
+    #[account(
+        seeds = [b"creator_profile", creator.key().as_ref()],
+        bump = creator_profile.bump,
+        constraint = creator_profile.creator == creator.key() @ TimeFunError::Unauthorized
+    )]
+    pub creator_profile: Account<'info, CreatorProfile>,
+    
+    /// CHECK: Vault PDA controlled by program
+    #[account(
+        mut,
+        seeds = [b"vault", creator.key().as_ref()],
+        bump
+    )]
+    pub vault: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SendMessage<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+    
+    /// CHECK: Creator public key for PDA derivation
+    pub creator: AccountInfo<'info>,
+    
     #[account(
-        mut,
-        seeds = [b"creator_profile", creator_profile.creator.as_ref()],
+        seeds = [b"creator_profile", creator.key().as_ref()],
         bump = creator_profile.bump
     )]
     pub creator_profile: Account<'info, CreatorProfile>,
-
+    
     #[account(
         mut,
-        seeds = [b"user_tracker", user.key().as_ref(), creator_profile.creator.as_ref()],
-        bump = user_time_tracker.bump,
-        has_one = user
+        address = creator_profile.creator_token_mint
     )]
-    pub user_time_tracker: Account<'info, UserTimeTracker>,
-
+    pub creator_token_mint: Account<'info, Mint>,
+    
     #[account(
         mut,
-        address = creator_profile.time_token_mint,
-    )]
-    pub time_token_mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        token::mint = time_token_mint,
-        token::authority = user
+        associated_token::mint = creator_token_mint,
+        associated_token::authority = user
     )]
     pub user_token_account: Account<'info, TokenAccount>,
-
+    
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = 8 + Conversation::INIT_SPACE,
+        seeds = [b"conversation", user.key().as_ref(), creator.key().as_ref()],
+        bump
+    )]
+    pub conversation: Account<'info, Conversation>,
+    
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct Platform {
-    pub authority: Pubkey,
-    pub treasury: Pubkey,
-    pub platform_fee_bps: u16,
-    pub treasury_bump: u8,
-    pub total_creators: u64,
+#[derive(Accounts)]
+pub struct CreatorReplyBack<'info> {
+    #[account(mut)]
+    pub creator: Signer<'info>,
+    
+    /// CHECK: User public key for PDA derivation
+    pub user: AccountInfo<'info>,
+    
+    #[account(
+        seeds = [b"creator_profile", creator.key().as_ref()],
+        bump = creator_profile.bump,
+    )]
+    pub creator_profile: Account<'info, CreatorProfile>,
+    
+    #[account(
+        mut,
+        seeds = [b"conversation", user.key().as_ref(), creator.key().as_ref()],
+        bump = conversation.bump,
+        constraint = conversation.creator == creator.key() @ TimeFunError::Unauthorized
+    )]
+    pub conversation: Account<'info, Conversation>,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct CreatorProfile {
     pub creator: Pubkey,
-    #[max_len(32)]
-    pub name: String,
-    pub time_token_mint: Pubkey,
-    pub price_per_minute: u64,
-    pub total_supply: u64,
-    pub max_supply: u64,
-    pub total_earned: u64,
-    pub is_active: bool,
+    pub creator_token_mint: Pubkey,
+    pub base_per_token: u64,    // base price in lamports
+    pub chars_per_token: u64,   // how many chars = 1 token
+    pub total_supply: u64,      // total tokens minted
     pub bump: u8,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct TradeOffer {
-    pub seller: Pubkey,
-    pub creator_profile: Pubkey,
-    pub amount_offered: u64,
-    pub price_per_token: u64,
-    pub expires_at: i64,
-    pub is_active: bool,
-}
-
-#[account]
-#[derive(InitSpace)]
-pub struct UserTimeTracker {
+pub struct Conversation {
     pub user: Pubkey,
     pub creator: Pubkey,
-    pub available_minutes: u64,
-    pub used_minutes: u64,
-    pub last_sync: i64,
+    pub last_message_from: MessageSender,
+    pub last_message_time: i64,
+    pub total_messages: u64,
     pub bump: u8,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
-pub enum SessionType {
-    DirectMessage,
-    VoiceCall,
-    VideoCall
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
+pub enum MessageSender {
+    User,
+    Creator,
 }
 
+#[event]
+pub struct MessageSent {
+    pub conversation: Pubkey,
+    pub sender: Pubkey,
+    pub recipient: Pubkey,
+    pub message: String,
+    pub tokens_burned: u64,
+    pub timestamp: i64,
+}
+
+// Error codes
 #[error_code]
 pub enum TimeFunError {
-    #[msg("Purchase amount below minimum")]
-    BelowMinimumPurchase,
-    #[msg("Insufficient time available")]
+    #[msg("Insufficient word balance")]
+    InsufficientWords,
+    #[msg("Insufficient time balance")]
     InsufficientTime,
-    #[msg("No messaging access - purchase time first")]
-    NoMessagingAccess,
-    #[msg("Overflow error")]
+    #[msg("Insufficient token balance")]
+    InsufficientTokens,
+    #[msg("Session is not active")]
+    SessionNotActive,
+    #[msg("Arithmetic overflow")]
     Overflow,
-    #[msg("Underflow error")]
+    #[msg("Arithmetic underflow")]
     Underflow,
-    #[msg("Name Too Long")]
-    NameTooLong,
-    #[msg("Creator Inactive")]
-    CreatorInactive,
-    #[msg("Exceeds Max Supply")]
-    ExceedsMaxSupply,
-    #[msg("Trade Offer Inactive")]
-    TradeOfferInactive,
-    #[msg("Trade Offer Expired")]
-    TradeOfferExpired,
+    #[msg("MathError")]
+    MathError,
     #[msg("Unauthorized")]
     Unauthorized,
-    #[msg("Math Overflow")]
-    MathOverflow,
+    #[msg("Conversation not initialized")]
+    ConversationNotInitialized,
+    #[msg("Insufficient vault balance")]
+    InsufficientVaultBalance,
 }
