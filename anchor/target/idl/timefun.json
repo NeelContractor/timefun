@@ -1,5 +1,5 @@
 {
-  "address": "4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE",
+  "address": "FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX",
   "metadata": {
     "name": "timefun",
     "version": "0.1.0",
@@ -396,6 +396,22 @@
         {
           "name": "chars_per_token",
           "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "bio",
+          "type": "string"
+        },
+        {
+          "name": "image",
+          "type": "string"
+        },
+        {
+          "name": "social_link",
+          "type": "string"
         }
       ]
     },
@@ -1004,6 +1020,22 @@
           {
             "name": "creator",
             "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "bio",
+            "type": "string"
+          },
+          {
+            "name": "image",
+            "type": "string"
+          },
+          {
+            "name": "social_link",
+            "type": "string"
           },
           {
             "name": "creator_token_mint",

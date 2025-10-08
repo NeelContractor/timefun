@@ -7,7 +7,7 @@ use anchor_spl::{
     token::{self, Burn, Mint, MintTo, Token, TokenAccount}
 };
 
-declare_id!("4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE");
+declare_id!("FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX");
 
 #[program]
 pub mod timefun {
@@ -17,12 +17,20 @@ pub mod timefun {
         ctx: Context<InitializeCreatorProfile>,
         base_price: u64,
         chars_per_token: u64,
+        name: String,
+        bio: String,
+        image: String,
+        social_link: String,
     ) -> Result<()> {
         let creator_profile = &mut ctx.accounts.creator_profile;
         creator_profile.creator = ctx.accounts.creator.key();
         creator_profile.creator_token_mint = ctx.accounts.creator_token_mint.key();
         creator_profile.base_per_token = base_price;
         creator_profile.chars_per_token = chars_per_token;
+        creator_profile.name = name;
+        creator_profile.bio = bio;
+        creator_profile.image = image;
+        creator_profile.social_link = social_link;
         creator_profile.total_supply = 0;
         creator_profile.bump = ctx.bumps.creator_profile;
         Ok(())
@@ -507,6 +515,14 @@ pub struct CreatorReplyBack<'info> {
 #[derive(InitSpace)]
 pub struct CreatorProfile {
     pub creator: Pubkey,
+    #[max_len(32)]
+    pub name: String, // adding for creating creator's profile card.
+    #[max_len(100)]
+    pub bio: String, // adding for creating creator's profile card.
+    #[max_len(100)]
+    pub image: String, // adding for creating creator's profile card.
+    #[max_len(100)]
+    pub social_link: String, // adding for creating creator's profile card.
     pub creator_token_mint: Pubkey,
     pub base_per_token: u64,    // base price in lamports
     pub chars_per_token: u64,   // how many chars = 1 token

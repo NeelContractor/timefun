@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-timefun = "4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE"
+timefun = "FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX"
 
 [registry]
 url = "https://api.apr.dev"

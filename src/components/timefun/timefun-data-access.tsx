@@ -36,6 +36,10 @@ interface InitializeCreatorArgs {
   creatorPubkey: PublicKey, 
   basePrice: BN, 
   charsPerToken: BN
+  name: string, 
+  bio: string, 
+  image: string, 
+  socialLink: string
 }
 
 interface BuyTokensArgs {
@@ -92,7 +96,7 @@ export function useTimeFunProgram() {
 
   const initializeCreatorHandler = useMutation<string, Error, InitializeCreatorArgs>({
     mutationKey: ['platform', 'initialize', { cluster }],
-    mutationFn: async ({ creatorPubkey, basePrice, charsPerToken }) => {
+    mutationFn: async ({ creatorPubkey, basePrice, charsPerToken, name, bio, image, socialLink }) => {
       const [creatorProfilePda] = PublicKey.findProgramAddressSync(
         [Buffer.from("creator_profile"), creatorPubkey.toBuffer()],
         program.programId
@@ -104,7 +108,7 @@ export function useTimeFunProgram() {
       );
 
       return await program.methods
-        .initializeCreator(basePrice, charsPerToken)
+        .initializeCreator(basePrice, charsPerToken, name, bio, image, socialLink) // TODO: thinking to hardcode base price and chars per tokens
         .accountsStrict({ 
           creator: creatorPubkey,
           creatorProfile: creatorProfilePda,

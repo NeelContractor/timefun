@@ -4,16 +4,21 @@ import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { User, CreativeCommons, UserCircleIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import Image from "next/image";
 
 export default function Page() {
     const { wallet, publicKey } = useWallet();
-    const { buyTokensHandler, creatorProfileAccounts, initializeCreatorHandler, sellTokensHandler, sendMessageHandler, withdrawFromVaultHandler, conversationAccounts, creatorReplyBackHandler } = useTimeFunProgram();
+    const { buyTokensHandler, creatorProfileAccounts, initializeCreatorHandler, sellTokensHandler, sendMessageHandler, withdrawFromVaultHandler, conversationAccounts, creatorReplyBackHandler, program } = useTimeFunProgram();
 
+    const [name, setName] = useState("");
+    const [bio, setBio] = useState("");
+    const [image, setImage] = useState("");
+    const [socialLink, setSocialLink] = useState("");
     const [initialPrice, setInitialPrice] = useState(0);
     const [initialWords, setInitialWords] = useState(0);
     const [withdrawAmount, setWithdrawAmount] = useState(0);
@@ -28,7 +33,7 @@ export default function Page() {
 
     const handleInitialzeCreator = async () => {
         if (publicKey) {
-            await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, basePrice: new BN(initialPrice * DECIMALS), charsPerToken: new BN(initialWords) });
+            await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, basePrice: new BN(initialPrice * DECIMALS), charsPerToken: new BN(initialWords), name, bio, image, socialLink });
         }
     }
 
@@ -67,11 +72,29 @@ export default function Page() {
         const typeKey = Object.keys(Type)[0];
         
         switch (typeKey) {
-          case 'user': return <p>User</p>;
-          case 'creator': return <p>Creator</p>;
-          default: return <p>Default User</p>;
+            case 'user': return <p>User</p>;
+            case 'creator': return <p>Creator</p>;
+            default: return <p>Default User</p>;
         }
-      };
+    };
+
+    const formatDate = (timestamp: number) => {
+        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+    };
+
+    useEffect(() => {
+        program.addEventListener("messageSent", (event) => {
+            console.log('\n📨 MessageSent event (Creator Reply):');
+            console.log('   Sender:', event.sender.toBase58());
+            console.log('   Recipient:', event.recipient.toBase58());
+            console.log('   Tokens burned:', event.tokensBurned.toString(), '(ZERO - FREE REPLY!)');
+            console.log('   Message:', event.message);
+          });
+    })
 
     return <div>
         <div>
@@ -87,13 +110,18 @@ export default function Page() {
                         <h1>CreatorProfileAccounts</h1>
                         {creatorProfileAccounts.data?.map((creator) => (
                             <div key={creator.account.creator.toBase58()} className="grid border rounded-lg p-3 bg-gray-700">
+                                {JSON.stringify(creator.account)}
                                 <div>Creator: {creator.account.creator.toBase58()}</div>
+                                <div>Name: {creator.account.name}</div>
+                                <div>Bio: {creator.account.bio}</div>
+                                <div>Image: {creator.account.image}</div>
+                                <div>Social Link: {creator.account.socialLink}</div>
                                 <div>Base Price: {creator.account.basePerToken.toNumber()}</div>
-                                {/* <div>Current Price: {creator.account..toNumber()}</div> */}
                                 <div>Token Mint: {creator.account.creatorTokenMint.toBase58()}</div>
-                                {/* <div>Total Holders: {creator.account.totalSupply.toNumber()}</div> */}
                                 <div>Total Supply: {creator.account.totalSupply.toNumber()}</div>
                                 <div>Chars Per Token: {creator.account.charsPerToken.toNumber()}</div>
+                                <div>Image: {creator.account.image}</div>
+                                <Image src={creator.account.image} alt="Image" width={100} height={100} />
                             </div>
                         ))}
                         
@@ -106,7 +134,7 @@ export default function Page() {
                                 <div>Creator: {convo.account.creator.toBase58()}</div>
                                 <div>User: {convo.account.user.toBase58()}</div>
                                 <div>Last Message From: {getTypeIcon(convo.account.lastMessageFrom)}</div>
-                                <div>Last Message Time: {convo.account.lastMessageTime.toNumber()}</div>
+                                <div>Last Message Time: {formatDate(convo.account.lastMessageTime.toNumber())}</div>
                                 <div>Total Messages: {convo.account.totalMessages.toNumber()}</div>
                             </div>
                         ))}
@@ -118,8 +146,51 @@ export default function Page() {
             <div className="grid grid-cols-2 gap-5">
                 <div className="grid justify-center gap-5">
                     <h1>Testing Creator Page</h1>
+
+                    {/* <div ref={}></div> */}
+                    {program.addEventListener("messageSent", (event) => {
+                        // console.log('\n📨 MessageSent event (Creator Reply):');
+                        // console.log('   Sender:', event.sender.toBase58());
+                        // console.log('   Recipient:', event.recipient.toBase58());
+                        // console.log('   Tokens burned:', event.tokensBurned.toString(), '(ZERO - FREE REPLY!)');
+                        // console.log('   Message:', event.message);
+                        <div key={event.timestamp.toString()}>
+                            <div>{event.sender.toBase58().trimEnd()}</div>
+                            <div>{event.message}</div>
+                            <div>{formatDate(event.timestamp.toNumber())}</div>
+                        </div>
+                    })}
+
                     <div>
                         <h1>Initialize Creator</h1>
+                        <Input 
+                            type="text" 
+                            placeholder="Name" 
+                            onChange={(e) => {
+                                setName(e.target.value)
+                            }} 
+                        />
+                        <Input 
+                            type="text" 
+                            placeholder="Bio" 
+                            onChange={(e) => {
+                                setBio(e.target.value)
+                            }} 
+                        />
+                        <Input 
+                            type="text" 
+                            placeholder="Image" 
+                            onChange={(e) => {
+                                setImage(e.target.value)
+                            }} 
+                        />
+                        <Input 
+                            type="text" 
+                            placeholder="SocialLink" 
+                            onChange={(e) => {
+                                setSocialLink(e.target.value)
+                            }} 
+                        />
                         <Input 
                             type="number" 
                             placeholder="initial Price " 

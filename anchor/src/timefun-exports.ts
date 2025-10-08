@@ -21,7 +21,7 @@ export function getTimefunProgramId(cluster: Cluster) {
     case 'devnet':
     case 'testnet':
       // This is the program ID for the Counter program on devnet and testnet.
-      return new PublicKey('4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE')
+      return new PublicKey('FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX')
     case 'mainnet-beta':
     default:
       return TIMEFUN_PROGRAM_ID

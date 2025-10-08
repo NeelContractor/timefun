@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/timefun.json`.
  */
 export type Timefun = {
-  "address": "4XpARVWj2XoKbXjdPoxSb4Ua54t5DzQPse9HDVMjvakE",
+  "address": "FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX",
   "metadata": {
     "name": "timefun",
     "version": "0.1.0",
@@ -402,6 +402,22 @@ export type Timefun = {
         {
           "name": "charsPerToken",
           "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "bio",
+          "type": "string"
+        },
+        {
+          "name": "image",
+          "type": "string"
+        },
+        {
+          "name": "socialLink",
+          "type": "string"
         }
       ]
     },
@@ -1010,6 +1026,22 @@ export type Timefun = {
           {
             "name": "creator",
             "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "bio",
+            "type": "string"
+          },
+          {
+            "name": "image",
+            "type": "string"
+          },
+          {
+            "name": "socialLink",
+            "type": "string"
           },
           {
             "name": "creatorTokenMint",

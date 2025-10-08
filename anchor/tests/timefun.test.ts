@@ -27,6 +27,11 @@ describe('Time Fun', () => {
   const INITIAL_PRICE = new anchor.BN(1_000_000); // 0.001 SOL
   const INITIAL_WORDS = new anchor.BN(100);
 
+  const NAME = "TEST#1"
+  const BIO = "TEST#1BIO"
+  const IMAGE = "https://avatars.githubusercontent.com/u/116061908"
+  const SOCIAL_LINK = "https://github.com/NeelContractor"
+
   beforeAll(async () => {
     const airdropCreator = await provider.connection.requestAirdrop(
       creator.publicKey,
@@ -66,7 +71,7 @@ describe('Time Fun', () => {
       console.log('Creator Profile PDA:', creatorProfilePda.toBase58());
 
       await program.methods
-        .initializeCreator(INITIAL_PRICE, INITIAL_WORDS)
+        .initializeCreator(INITIAL_PRICE, INITIAL_WORDS, NAME, BIO, IMAGE, SOCIAL_LINK)
         .accountsStrict({
           creator: creator.publicKey,
           creatorProfile: creatorProfilePda,
