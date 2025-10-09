@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { CategoryType, useTimeFunProgram } from "@/components/timefun/timefun-data-access";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import BN from "bn.js";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,7 @@ export interface ProfileType {
 export default function Profile() {
     const { creatorProfileAccounts } = useTimeFunProgram();
     // const { publicKey } = useWallet();
+    const { connection } = useConnection();
     const [profile, setProfile] = useState<ProfileType>();
     const params = useParams()
     const address = useMemo(() => {
@@ -90,6 +91,7 @@ export default function Profile() {
     //     }
     //     fetchProfile();
     // }, [])
+    const [transactions, setTransaction] = useState<any>(); // fix type
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -100,6 +102,8 @@ export default function Profile() {
             
             if (matchingProfile) {
                 setProfile(matchingProfile.account);
+                // connection
+                await getTransactions(matchingProfile.account.creatorTokenMint, 10);
                 console.log('Found profile:', matchingProfile.account);
             } else {
                 console.log('Profile not found for address:', address.toBase58());
@@ -110,6 +114,21 @@ export default function Profile() {
             fetchProfile();
         }
     }, [address, creatorProfileAccounts.data]);
+
+    // TODO: test this functionality
+    const getTransactions = async(address: PublicKey, numTx: number) => {
+        const pubKey = new PublicKey(address);
+        let transactionList = await connection.getSignaturesForAddress(pubKey, {limit:numTx});
+        transactionList.forEach((transaction, i) => {
+            // const date = new Date(transaction.blockTime*1000);
+            console.log(`Full data: ${transaction}`);
+            console.log(`Transaction No: ${i+1}`);
+            console.log(`Signature: ${transaction.signature}`);
+            // console.log(`Time: ${date}`);
+            console.log(`Status: ${transaction.confirmationStatus}`);
+            console.log(("-").repeat(20));
+        })
+    }
 
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");
 
@@ -179,7 +198,7 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    {/** TODO:  */}
+                    {/** TODO: add buy tokens to other users */}
                     {/* <div className="flex justify-end">
                         <div className="bg-gradient-to-br from-pink-950/20 to-purple-950/20 rounded-3xl p-8 border border-pink-500/20">
                             <h1 className="text-2xl font-bold">Buy Creator's Tokens</h1>
@@ -280,6 +299,7 @@ export default function Profile() {
                                             <h4 className="text-lg font-semibold text-gray-300">Total Token Supply</h4>
                                             <p className="text-3xl font-bold text-white mt-2">
                                                 {profile?.totalSupply.toNumber() ?? 0}
+                                                {transactions}
                                             </p>
                                         </div>
                                     </div>

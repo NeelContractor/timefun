@@ -138,7 +138,7 @@ export default function CategorySelector() {
                     <style>{`#category-scroll::-webkit-scrollbar { display: none; }`}</style>
                     <div className="flex gap-3 pb-4 min-w-max px-12">
                         {categoryTabs.map((category) => (
-                            <button
+                            <button // TODO: fix button not working
                                 key={category.id}
                                 onClick={() => handleCategorySelect(category.id as CategoryType)} // fix this error Argument of type 'string' is not assignable to parameter of type 'CategoryType'.
                                 // onClick={() => handleCategorySelect(category.id)}
@@ -171,14 +171,17 @@ export default function CategorySelector() {
                 </button>
             </div>
 
-            {creatorProfileAccounts.data
-              ?.filter((profile) => getCategoryType(profile.account.category)) // fix this This comparison appears to be unintentional because the types 'DecodeEnum<{ kind: "enum"; variants: [{ name: "timeFunTeam"; }, { name: "founders"; }, { name: "influencers"; }, { name: "investors"; }, { name: "designer"; }, { name: "athletes"; }, { name: "solana"; }, { ...; }, { ...; }, { ...; }, { ...; }]; }, DecodedHelper<...>>' and 'string' have no overlap.
-              .map((profile) => (
-                <div key={profile.publicKey.toString()} className='flex gap-5 border-pink-500 rounded-2xl'>
-                  <Image src={profile.account.image} alt='Image' width={100} height={100} />
-                  <h1 className='font-bold text-xl'>{profile.account.name}</h1>
-                </div>
-            ))}  
+            {/* TODO: improve ui */}
+            <div className='grid grid-cols-8 gap-2'>
+              {creatorProfileAccounts.data
+                ?.filter((profile) => getCategoryType(profile.account.category)) // fix this This comparison appears to be unintentional because the types 'DecodeEnum<{ kind: "enum"; variants: [{ name: "timeFunTeam"; }, { name: "founders"; }, { name: "influencers"; }, { name: "investors"; }, { name: "designer"; }, { name: "athletes"; }, { name: "solana"; }, { ...; }, { ...; }, { ...; }, { ...; }]; }, DecodedHelper<...>>' and 'string' have no overlap.
+                .map((profile) => (
+                  <div key={profile.publicKey.toString()} className='grid self-center border border-pink-500 rounded-xl'> 
+                    <Image src={profile.account.image} alt='Image' width={200} height={200} className='self-center content-center items-center' />
+                    <h1 className='font-bold text-xl text-center'>{profile.account.name}</h1>
+                  </div>
+              ))}  
+            </div>
 
         </div>
     </div>
