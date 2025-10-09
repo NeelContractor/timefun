@@ -2,7 +2,7 @@
 
 import { getTimefunProgram, getTimefunProgramId } from '@project/anchor'
 import { useConnection } from '@solana/wallet-adapter-react'
-import { Cluster, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
+import { Cluster, LAMPORTS_PER_SOL, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useCluster } from '../cluster/cluster-data-access'
@@ -34,8 +34,8 @@ import BN from 'bn.js'
 
 interface InitializeCreatorArgs {
   creatorPubkey: PublicKey, 
-  basePrice: BN, 
-  charsPerToken: BN
+  // basePrice: BN, // hardcode
+  // charsPerToken: BN // hardcode
   name: string, 
   bio: string, 
   image: string, 
@@ -96,7 +96,7 @@ export function useTimeFunProgram() {
 
   const initializeCreatorHandler = useMutation<string, Error, InitializeCreatorArgs>({
     mutationKey: ['platform', 'initialize', { cluster }],
-    mutationFn: async ({ creatorPubkey, basePrice, charsPerToken, name, bio, image, socialLink }) => {
+    mutationFn: async ({ creatorPubkey, name, bio, image, socialLink }) => {
       const [creatorProfilePda] = PublicKey.findProgramAddressSync(
         [Buffer.from("creator_profile"), creatorPubkey.toBuffer()],
         program.programId
@@ -106,6 +106,9 @@ export function useTimeFunProgram() {
         [Buffer.from("creator_token_mint"), creatorPubkey.toBuffer()],
         program.programId
       );
+
+      let basePrice = new BN(0.1 * LAMPORTS_PER_SOL);
+      let charsPerToken = new BN(100);
 
       return await program.methods
         .initializeCreator(basePrice, charsPerToken, name, bio, image, socialLink) // TODO: thinking to hardcode base price and chars per tokens

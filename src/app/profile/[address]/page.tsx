@@ -1,8 +1,8 @@
 "use client"
-import { PublicKey } from "@solana/web3.js"
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo } from "react"
-import { Dot, Link2, MessageCircleMoreIcon, Star, X } from "lucide-react";
+import { Clock, Link2, MessageCircleMore, MessageCircleMoreIcon, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -47,7 +47,7 @@ export default function Profile() {
         }
         try {
             // console.log(params);
-            console.log(params.address);
+            // console.log(params.address);
             return new PublicKey(params.address)
         } catch (e) {
             console.log(`Invalid public key`, e)
@@ -90,75 +90,293 @@ export default function Profile() {
     }, [address, creatorProfileAccounts.data]);
 
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");
-    return <div className="my-10 px-10">
-        <div className="flex ">
-            {JSON.stringify(profile)}
-            <div className="flex">
-                <Image src={profile?.image ?? "/timefunImage.png"} alt="Image" width={200} height={200} className="rounded-lg" />
-                <div className="px-5">
-                    <div className="flex gap-5">
-                        <h1 className="font-semibold text-2xl">{profile?.name}</h1>
-                        <div className="p-1 rounded-full bg-[#1c1719] self-center">
-                            <p className="text-xs p-0.5 font-light text-center">TimeFun Creator</p>
+
+    return (
+        <div className="min-h-screen bg-black text-white">
+            {/* Hero Section with Gradient */}
+            <div className="relative bg-gradient-to-b from-pink-950/20 via-black to-black">
+                <div className="max-w-7xl mx-auto px-6 py-12">
+                    {/* Profile Header */}
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                        {/* Profile Image with Glow Effect */}
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition duration-300"></div>
+                            <div className="relative">
+                                <Image 
+                                    src={profile?.image ?? "/timefunImage.png"} 
+                                    alt={profile?.name ?? "Profile"} 
+                                    width={220} 
+                                    height={220} 
+                                    className="rounded-2xl border-2 border-pink-500/50 object-cover"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Profile Info */}
+                        <div className="flex-1 space-y-4">
+                            <div className="flex flex-wrap items-center gap-4">
+                                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-pink-200 bg-clip-text text-transparent">
+                                    {profile?.name ?? "Loading..."}
+                                </h1>
+                                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-600 to-pink-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/50">
+                                    TimeFun Creator
+                                </span>
+                            </div>
+
+                            <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
+                                {profile?.bio ?? "No bio available"}
+                            </p>
+
+                            {/* Stats Row */}
+                            <div className="flex flex-wrap gap-6 pt-4">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-pink-950/30 rounded-lg border border-pink-500/20">
+                                    <Users className="w-5 h-5 text-pink-400" />
+                                    <span className="text-sm text-gray-300">
+                                        <span className="font-bold text-white">{profile?.totalSupply.toNumber() ?? 0}</span> tokens
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-pink-950/30 rounded-lg border border-pink-500/20">
+                                    <TrendingUp className="w-5 h-5 text-pink-400" />
+                                    <span className="text-sm text-gray-300">
+                                        <span className="font-bold text-white">{profile?.basePerToken ? (profile.basePerToken.toNumber() / LAMPORTS_PER_SOL).toFixed(3) : "0"}</span> SOL
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Social Link */}
+                            {profile?.socialLink && (
+                                <Link 
+                                    target="_blank" 
+                                    href={profile.socialLink} 
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 hover:border-pink-500 rounded-lg transition-all duration-300 group"
+                                >
+                                    <Link2 className="w-4 h-4 text-pink-400 group-hover:text-pink-300" />
+                                    <span className="text-sm text-pink-400 group-hover:text-pink-300">Social Link</span>
+                                </Link>
+                            )}
                         </div>
                     </div>
-                    <div>
-                        <p className="text-sm py-2 text-pink-100">{profile?.bio}</p>
-                        {/* <div className="flex gap-2">
-                            <Star />
-                            <Star />
-                            <Star />
-                            <Star />
-                            <Star />
-                            <p>5</p>
-                            <Dot />
-                            <p>90% response rate</p>
-                        </div> */}
-                        <div className="flex">
-                            <div className="border ">
-                                <Link href={profile?.socialLink ?? ""}>
-                                    <Link2 />
-                                </Link>
+
+                    {/* Tabs */}
+                    <div className="flex gap-2 mt-12 border-b border-gray-800">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`relative px-6 py-3 text-lg font-semibold transition-all duration-300 ${
+                                    activeTab === tab.id 
+                                        ? "text-white" 
+                                        : "text-gray-500 hover:text-gray-300"
+                                }`}
+                            >
+                                {tab.name}
+                                {activeTab === tab.id && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-pink-600 to-pink-400"></div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="mt-8 min-h-[200px]">
+                        {activeTab === "about" && (
+                            <div className="bg-gradient-to-br from-pink-950/10 to-purple-950/10 rounded-2xl p-8 border border-pink-500/10">
+                                <h3 className="text-2xl font-bold mb-4 text-pink-100">About</h3>
+                                <p className="text-gray-300 text-lg leading-relaxed">
+                                    {profile?.bio ?? "No information available"}
+                                </p>
+                            </div>
+                        )}
+
+                        {activeTab === "market" && (
+                            <div className="bg-gradient-to-br from-pink-950/10 to-purple-950/10 rounded-2xl p-8 border border-pink-500/10">
+                                <h3 className="text-2xl font-bold mb-6 text-pink-100">Market Information</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-black/40 rounded-xl p-6 border border-pink-500/20">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-pink-500/20 rounded-lg">
+                                                <TrendingUp className="w-6 h-6 text-pink-400" />
+                                            </div>
+                                            <h4 className="text-lg font-semibold text-gray-300">Base Token Price</h4>
+                                        </div>
+                                        <p className="text-3xl font-bold text-white">
+                                            {profile?.basePerToken ? (profile.basePerToken.toNumber() / LAMPORTS_PER_SOL).toFixed(4) : "0"} SOL
+                                        </p>
+                                        <p className="text-sm text-gray-400 mt-2">
+                                            per {profile?.charsPerToken.toNumber() ?? 0} characters
+                                        </p>
+                                    </div>
+                                    <div className="bg-black/40 rounded-xl p-6 border border-pink-500/20">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-pink-500/20 rounded-lg">
+                                                <Clock className="w-6 h-6 text-pink-400" />
+                                            </div>
+                                            <h4 className="text-lg font-semibold text-gray-300">Characters per Token</h4>
+                                        </div>
+                                        <p className="text-3xl font-bold text-white">
+                                            {profile?.charsPerToken.toNumber() ?? 0}
+                                        </p>
+                                        <p className="text-sm text-gray-400 mt-2">characters available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === "activity" && (
+                            <div className="bg-gradient-to-br from-pink-950/10 to-purple-950/10 rounded-2xl p-8 border border-pink-500/10">
+                                <h3 className="text-2xl font-bold mb-6 text-pink-100">Activity</h3>
+                                <div className="bg-black/40 rounded-xl p-6 border border-pink-500/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-pink-500/20 rounded-lg">
+                                            <Users className="w-6 h-6 text-pink-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-semibold text-gray-300">Total Token Supply</h4>
+                                            <p className="text-3xl font-bold text-white mt-2">
+                                                {profile?.totalSupply.toNumber() ?? 0}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="max-w-7xl mx-auto px-6 py-12">
+                <div className="bg-gradient-to-br from-pink-950/20 to-purple-950/20 rounded-3xl p-8 border border-pink-500/20">
+                    <h2 className="text-3xl font-bold mb-2">
+                        Get access to <span className="text-pink-400">{profile?.name}</span>
+                    </h2>
+                    <p className="text-gray-400 mb-8">
+                        Use your purchased tokens to connect with {profile?.name}
+                    </p>
+
+                    <div className="bg-black/40 rounded-2xl border border-pink-500/30 hover:border-pink-500 transition-all duration-300 overflow-hidden group">
+                        <div className="p-8">
+                            <div className="flex items-start gap-6">
+                                <div className="p-4 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl border border-pink-500/30 group-hover:scale-110 transition-transform duration-300">
+                                    <MessageCircleMore className="w-10 h-10 text-pink-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-bold mb-2">Direct Message</h3>
+                                    <p className="text-gray-400 leading-relaxed">
+                                        Send a direct message for a quick connection. Keep the conversation going with additional messages if needed
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-gradient-to-r from-pink-950/40 to-purple-950/40 px-8 py-6 border-t border-pink-500/20">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-400 mb-1">Message Price</p>
+                                    <p className="text-2xl font-bold text-white">
+                                        {profile?.basePerToken ? (profile.basePerToken.toNumber() / LAMPORTS_PER_SOL).toFixed(4) : "0"} SOL
+                                    </p>
+                                    <p className="text-sm text-pink-400">
+                                        for {profile?.charsPerToken.toNumber() ?? 0} characters
+                                    </p>
+                                </div>
+                                <button className="px-8 py-3 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 rounded-xl font-semibold text-white shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105">
+                                    Send Message
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div className="flex gap-5">
-            {tabs.map((tab) => (
-                <div key={tab.id}>
-                    <button
-                        onClick={() => {
-                            setActiveTab(tab.id)
-                        }}
-                    >
-                        <h1 className={`text-xl font-bold ${activeTab === tab.id ? "text-white" : "text-gray-400"}`}>{tab.name}</h1>
-                    </button>
-                </div>
-            ))}
-        </div>
-        {activeTab}
+    );
 
-        <div>
-            <h1 className="text-2xl font-bold">
-                Get access to {profile?.name}
-            </h1>
-            <p className="text-base text-gray-200">Use your purchased minutes to connect with {profile?.name}</p>
-            <div className="border py-1 px-3 rounded-lg bg-[#40263172] hover:border-pink-400 my-5">
-                <div className="flex mt-5">
-                    <div className="flex p-2 border mx-5 self-center rounded-lg">
-                        <MessageCircleMoreIcon className="w-8 h-8 hover:text-pink-400" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold">Direct Message</h1>
-                        <p className="text-gray-400 font-medium">Send a direct message for a quick connection. Kepp the conversation going with additional messages if needed</p>
-                    </div>
-                </div>
-                <div className="p-2 rounded-lg mt-5 bg-[#4026314a]">
-                    <p>Price 29.80 min 0.30</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    // return <div className="my-10 px-10">
+    //     <div className="flex ">
+    //         {/* {JSON.stringify(profile)} */}
+    //         <div className="flex">
+    //             <Image src={profile?.image ?? "/timefunImage.png"} alt="Image" width={200} height={200} className="rounded-lg" />
+    //             <div className="px-5 py-3">
+    //                 <div className="flex gap-5">
+    //                     <h1 className="font-semibold text-2xl">{profile?.name}</h1>
+    //                     <div className="p-1 rounded-full bg-[#341d27] self-center">
+    //                         <p className="text-xs font-semibold p-0.5 text-center ">TimeFun Creator</p>
+    //                     </div>
+    //                 </div>
+    //                 <div>
+    //                     <p className="text-lg py-2 text-pink-100">{profile?.bio}</p>
+    //                     {/* <div className="flex gap-2">
+    //                         <Star />
+    //                         <Star />
+    //                         <Star />
+    //                         <Star />
+    //                         <Star />
+    //                         <p>5</p>
+    //                         <Dot />
+    //                         <p>90% response rate</p>
+    //                     </div> */}
+    //                     <div className="flex">
+    //                         <div className="">
+    //                             <Link target="_blank" href={profile?.socialLink ?? ""} className="hover:text-pink-500" title="Social">
+    //                                 <Link2 />
+    //                             </Link>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     </div>
+    //     <div className="flex gap-5 py-3">
+    //         {tabs.map((tab) => (
+    //             <div key={tab.id}>
+    //                 <button
+    //                     onClick={() => {
+    //                         setActiveTab(tab.id)
+    //                     }}
+    //                 >
+    //                     <h1 className={`text-xl font-bold ${activeTab === tab.id ? "text-white" : "text-gray-400"}`}>{tab.name}</h1>
+    //                 </button>
+    //             </div>
+    //         ))}
+    //     </div>
+    //     {/* {activeTab} */}
+
+    //     {activeTab === "about" && (
+    //         <div>
+    //             {profile?.bio}
+    //         </div>
+    //     )}
+
+    //     {activeTab === "market" && (
+    //         <div>
+    //             <p>Base Token Price: {profile?.basePerToken.toNumber() / LAMPORTS_PER_SOL} SOL for {profile?.charsPerToken.toNumber()} Chars</p>
+    //         </div>
+    //     )}
+
+    //     {activeTab === "activity" && (
+    //         <div>
+    //             <p>Total Supply: {profile?.totalSupply.toNumber()}</p>
+    //         </div>
+    //     )}
+
+    //     <div className="py-5">
+    //         <h1 className="text-2xl font-bold">
+    //             Get access to {profile?.name}
+    //         </h1>
+    //         <p className="text-base text-gray-200">Use your purchased minutes to connect with {profile?.name}</p>
+    //         <div className="border py-1 px-3 rounded-lg bg-[#40263172] hover:border-pink-400 my-5">
+    //             <div className="flex mt-5">
+    //                 <div className="flex p-2 border mx-5 self-center rounded-lg">
+    //                     <MessageCircleMoreIcon className="w-8 h-8 hover:text-pink-400" />
+    //                 </div>
+    //                 <div>
+    //                     <h1 className="text-xl font-bold">Direct Message</h1>
+    //                     <p className="text-gray-400 font-medium">Send a direct message for a quick connection. Kepp the conversation going with additional messages if needed</p>
+    //                 </div>
+    //             </div>
+    //             <div className="p-2 rounded-lg mt-5 bg-[#4026314a]">
+    //                 <p>Price {profile?.basePerToken.toNumber() / LAMPORTS_PER_SOL} SOL for {profile?.charsPerToken.toNumber()} Chars</p>
+    //             </div>
+    //         </div>
+    //     </div>
+    // </div>
 }

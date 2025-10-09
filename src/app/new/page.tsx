@@ -19,8 +19,8 @@ export default function Page() {
     const [bio, setBio] = useState("");
     const [image, setImage] = useState("");
     const [socialLink, setSocialLink] = useState("");
-    const [initialPrice, setInitialPrice] = useState(0);
-    const [initialWords, setInitialWords] = useState(0);
+    // const [initialPrice, setInitialPrice] = useState(0);
+    // const [initialWords, setInitialWords] = useState(0);
     const [withdrawAmount, setWithdrawAmount] = useState(0);
     const [creatorPubkey, setCreatorPubkey] = useState("");
     const [userPubkey, setUserPubkey] = useState("");
@@ -33,7 +33,7 @@ export default function Page() {
 
     const handleInitialzeCreator = async () => {
         if (publicKey) {
-            await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, basePrice: new BN(initialPrice * DECIMALS), charsPerToken: new BN(initialWords), name, bio, image, socialLink });
+            await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, name, bio, image, socialLink });
         }
     }
 
@@ -191,7 +191,7 @@ export default function Page() {
                                 setSocialLink(e.target.value)
                             }} 
                         />
-                        <Input 
+                        {/* <Input 
                             type="number" 
                             placeholder="initial Price " 
                             onChange={(e) => {
@@ -204,7 +204,7 @@ export default function Page() {
                             onChange={(e) => {
                                 setInitialWords(Number(e.target.value))
                             }} 
-                        />
+                        /> */}
                         <Button
                             onClick={() => {
                                 handleInitialzeCreator()
