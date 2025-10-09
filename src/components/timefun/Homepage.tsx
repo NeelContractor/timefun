@@ -74,7 +74,7 @@ export default function Homepage() {
                     </div>
                     
                     {/* Right Content - Creator Card */}
-                    <div className="flex justify-center lg:justify-end">
+                    <div className="flex justify-center lg:justify-center">
                         <div className="relative">
                             <div className="absolute -inset-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-3xl blur-2xl opacity-30 animate-pulse"></div>
                             <CreatorCard />

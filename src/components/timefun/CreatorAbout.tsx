@@ -1,9 +1,14 @@
 "use client"
 
-import { Dot, MessageCircleMoreIcon, Star, X } from "lucide-react";
+import { Dot, MessageCircleMoreIcon, Sparkles, Star, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useTimeFunProgram } from "./timefun-data-access";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { BN } from "bn.js";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 type TabsTypes = "about" | "market" | "activity";
 
@@ -20,6 +25,15 @@ const tabs: Tab[] = [
 
 export default function CreatorAbout() {
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");
+    const { publicKey } = useWallet();
+    const { buyTokensHandler } = useTimeFunProgram();
+    const [amount, setAmount] = useState(0);
+
+    const handleBuy = async() => {
+        if (!publicKey) return;
+        // buyTokensHandler.mutateAsync({ buyerPubkey: publicKey, amount: new BN(amount), creatorPubkey })
+    }
+
     return <div>
         <div className="flex my-10 px-10">
             <div className="flex">
@@ -53,6 +67,30 @@ export default function CreatorAbout() {
                     </div>
                 </div>
             </div>
+
+            <div className="flex justify-end">
+                <div className="bg-gradient-to-br from-pink-950/20 to-purple-950/20 rounded-3xl p-8 border border-pink-500/20">
+                    <h1 className="text-2xl font-bold">Buy Creator's Tokens</h1>
+                    <h3 className="py-3 text-center text-xl font-semibold">10 Chars for 0.1 SOL</h3>
+                    <Input 
+                        type="number"
+                        value={amount}
+                        onChange={(e) => {
+                            setAmount(Number(e.target.value))
+                        }}
+                        className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12"
+                    />
+                    <Button 
+                        type="button"
+                        onClick={handleBuy}
+                        className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 my-2"
+                    >
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Buy Tokens
+                    </Button>
+                </div>
+            </div>
+
         </div>
         <div className="flex gap-5">
             {tabs.map((tab) => (

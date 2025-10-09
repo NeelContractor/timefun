@@ -1,6 +1,6 @@
 "use client"
 import { WalletButton } from "@/components/solana/solana-provider"
-import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
+import { CategoryType, useTimeFunProgram } from "@/components/timefun/timefun-data-access"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -13,25 +13,108 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { CheckCircle2, FileText, Image, Link2, Sparkles, User } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
+
+const categoryOptions = [
+    { key: 'timeFunTeam', label: 'TimeFunTeam'},
+    { key: 'founders', label: 'Founders'},
+    { key: 'influencers', label: 'Influencers'},
+    { key: 'investors', label: 'Investors'},
+    { key: 'designer', label: 'Designer'},
+    { key: 'athletes', label: 'Athletes'},
+    { key: 'solana', label: 'Solana'},
+    { key: 'musicians', label: 'Musicians'},
+    { key: 'media', label: 'Media'},
+    { key: 'companies', label: 'Companies'},
+    { key: 'other', label: 'Other'}
+];
 
 export default function CreateCreator() {
     const [name, setName] = useState("");
+    const [shortBio, setShortBio] = useState("");
+    // const [longBio, setLongBio] = useState("");
     const [bio, setBio] = useState("");
-    const [imageUrl, setImageUrl] = useState("");
+    const [category, setCategory] = useState<CategoryType>({ other: {} });
+    const [selectedCategory, setSelectedCategory] = useState<string>("other");
+    const [imageUrl, setImageUrl] = useState<File>();
     const [socialLink, setSocialLink] = useState("");
-    const [initialPrice, setInitialPrice] = useState(0);
-    const [initialWords, setInitialWords] = useState(0);
+    // const [initialPrice, setInitialPrice] = useState(0);
+    // const [initialWords, setInitialWords] = useState(0);
     const { initializeCreatorHandler } = useTimeFunProgram();
     const { publicKey } = useWallet();
+
+    const mapCategoryToType = (key: string): CategoryType => {
+        return { [key]: {} } as CategoryType;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         // Handle form submission
-        if (!publicKey) return;
-        await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, name, bio, image: imageUrl, socialLink });
+
+        // TODO: add logic to add image to ipfs then send/ add the ipfs url on chain
+        try {
+            toast.loading("Uploading image to IPFS...");
+        
+            let ipfsUrl;
+        
+            // Case 1: imageUrl is a File
+            if (imageUrl instanceof File) {
+                const data = new FormData();
+                data.set("file", imageUrl);
+            
+                const uploadRequest = await fetch("/api/files", {
+                    method: "POST",
+                    body: data,
+                });
+            
+                const response = await uploadRequest.json();
+                if (response.error) {
+                    toast.error("IPFS upload failed");
+                    return;
+                }
+            
+                ipfsUrl = response.url;
+                toast.success("Image uploaded to IPFS!");
+                console.log("IPFS URL:", ipfsUrl);
+            }
+        
+            // Case 2: imageUrl is already a string (user pasted a URL)
+            // else if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
+            //   ipfsUrl = imageUrl;
+            // } else {
+            //   toast.error("Please upload a valid image or URL.");
+            //   return;
+            // }
+        
+            if (!publicKey) {
+                toast.error("Please connect your wallet first.");
+                return;
+            }
+        
+            toast.loading("Creating creator profile on-chain...");
+        
+            await initializeCreatorHandler.mutateAsync({
+                creatorPubkey: publicKey,
+                name,
+                shortBio,
+                // longBio,
+                category,
+                image: ipfsUrl,
+                socialLink,
+            });
+        
+            toast.success("Creator profile created successfully!");
+        } catch (error) {
+            console.error("Error creating creator profile:", error);
+            toast.error("Failed to create profile.");
+        }
+
+        // if (!publicKey) return;
+        // await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, name, shortBio, longBio, category, image: imageUrl, socialLink });
     };
 
     return (
@@ -131,20 +214,69 @@ export default function CreateCreator() {
                                     />
                                 </div>
 
-                                {/* Bio Field */}
+                                {/* Short Bio Field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="bio" className="text-gray-300 font-medium flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-pink-400" />
                                         Bio
                                     </Label>
+                                    <div className="relative w-full">
+                                        <textarea
+                                            id="bio"
+                                            maxLength={50}
+                                            placeholder="Tell people about yourself..."
+                                            value={shortBio}
+                                            onChange={(e) => setShortBio(e.target.value)}
+                                            rows={2}
+                                            className="w-full bg-black/40 border border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
+                                        />
+                                        <p className="absolute bottom-2 right-3 text-xs text-gray-400">
+                                            {50 - shortBio.length} characters left
+                                        </p>
+                                    </div>
+                                    {/* <span className="text-gray-300">{shortBio.length - 50}</span> */}
+                                </div>
+
+                                {/* Long Bio Field */}
+                                {/* <div className="space-y-2">
+                                    <Label htmlFor="bio" className="text-gray-300 font-medium flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-pink-400" />
+                                        Long Bio
+                                    </Label>
                                     <textarea
                                         id="bio"
                                         placeholder="Tell people about yourself..."
-                                        value={bio}
-                                        onChange={(e) => setBio(e.target.value)}
+                                        value={longBio}
+                                        onChange={(e) => setLongBio(e.target.value)}
                                         rows={4}
                                         className="w-full bg-black/40 border border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
                                     />
+                                </div> */}
+
+                                {/* Category Field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="bio" className="text-gray-300 font-medium flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-pink-400" />
+                                        Category
+                                    </Label>
+                                    <Select
+                                        value={selectedCategory}
+                                        onValueChange={(val) => {
+                                            setSelectedCategory(val);
+                                            setCategory(mapCategoryToType(val));
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full px-3 py-2">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categoryOptions.map((option) => (
+                                                <SelectItem key={option.key} value={option.key}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
                                 {/* Image URL Field */}
@@ -154,11 +286,18 @@ export default function CreateCreator() {
                                         Profile Image URL
                                     </Label>
                                     <Input 
+                                        // id="imageUrl"
+                                        // type="text" // <Input type="file" />
+                                        // placeholder="https://example.com/image.jpg" 
+                                        // value={imageUrl}
+                                        // onChange={(e) => setImageUrl(e.target.value)}
                                         id="imageUrl"
-                                        type="text" 
-                                        placeholder="https://example.com/image.jpg" 
-                                        value={imageUrl}
-                                        onChange={(e) => setImageUrl(e.target.value)}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) setImageUrl(file);
+                                        }}
                                         className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12"
                                     />
                                     {imageUrl && (

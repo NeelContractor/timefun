@@ -32,12 +32,40 @@ import BN from 'bn.js'
 // // Call this every 30 seconds during active conversation
 // setInterval(validateTimeRemaining, 30000);
 
+// TimeFunTeam,
+//     Founders,
+//     Influencers,
+//     Investors,
+//     Designer,
+//     Athletes,
+//     Solana,
+//     Musicians,
+//     Media,
+//     Companies,
+    // Other,
+
+export type CategoryType = 
+  | { timeFunTeam: {} } 
+  | { founders: {} } 
+  | { influencers: {} } 
+  | { investors: {} } 
+  | { designer: {} } 
+  | { athletes: {} } 
+  | { solana: {} } 
+  | { musicians: {} } 
+  | { media: {} } 
+  | { companies: {} } 
+  | { other: {} };
+
+
 interface InitializeCreatorArgs {
   creatorPubkey: PublicKey, 
   // basePrice: BN, // hardcode
   // charsPerToken: BN // hardcode
   name: string, 
-  bio: string, 
+  shortBio: string, 
+  // longBio: string, 
+  category: CategoryType,
   image: string, 
   socialLink: string
 }
@@ -96,7 +124,7 @@ export function useTimeFunProgram() {
 
   const initializeCreatorHandler = useMutation<string, Error, InitializeCreatorArgs>({
     mutationKey: ['platform', 'initialize', { cluster }],
-    mutationFn: async ({ creatorPubkey, name, bio, image, socialLink }) => {
+    mutationFn: async ({ creatorPubkey, name, shortBio, category, image, socialLink }) => {
       const [creatorProfilePda] = PublicKey.findProgramAddressSync(
         [Buffer.from("creator_profile"), creatorPubkey.toBuffer()],
         program.programId
@@ -111,7 +139,7 @@ export function useTimeFunProgram() {
       let charsPerToken = new BN(100);
 
       return await program.methods
-        .initializeCreator(basePrice, charsPerToken, name, bio, image, socialLink) // TODO: thinking to hardcode base price and chars per tokens
+        .initializeCreator(basePrice, charsPerToken, name, shortBio, category, image, socialLink) 
         .accountsStrict({ 
           creator: creatorPubkey,
           creatorProfile: creatorProfilePda,

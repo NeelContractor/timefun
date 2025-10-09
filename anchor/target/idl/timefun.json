@@ -406,6 +406,14 @@
           "type": "string"
         },
         {
+          "name": "category",
+          "type": {
+            "defined": {
+              "name": "Category"
+            }
+          }
+        },
+        {
           "name": "image",
           "type": "string"
         },
@@ -977,6 +985,47 @@
   ],
   "types": [
     {
+      "name": "Category",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "TimeFunTeam"
+          },
+          {
+            "name": "Founders"
+          },
+          {
+            "name": "Influencers"
+          },
+          {
+            "name": "Investors"
+          },
+          {
+            "name": "Designer"
+          },
+          {
+            "name": "Athletes"
+          },
+          {
+            "name": "Solana"
+          },
+          {
+            "name": "Musicians"
+          },
+          {
+            "name": "Media"
+          },
+          {
+            "name": "Companies"
+          },
+          {
+            "name": "Other"
+          }
+        ]
+      }
+    },
+    {
       "name": "Conversation",
       "type": {
         "kind": "struct",
@@ -1036,6 +1085,14 @@
           {
             "name": "social_link",
             "type": "string"
+          },
+          {
+            "name": "category",
+            "type": {
+              "defined": {
+                "name": "Category"
+              }
+            }
           },
           {
             "name": "creator_token_mint",

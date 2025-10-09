@@ -1,5 +1,5 @@
 "use client"
-import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
+import { CategoryType, useTimeFunProgram } from "@/components/timefun/timefun-data-access"
 import { PublicKey } from "@solana/web3.js";
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -8,19 +8,7 @@ import BN from "bn.js";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sparkles, TrendingUp, Users } from "lucide-react";
-
-interface ProfileType {
-    creator: PublicKey;
-    name: string;
-    bio: string;
-    image: string;
-    socialLink: string;
-    creatorTokenMint: PublicKey;
-    basePerToken: BN;
-    charsPerToken: BN;
-    totalSupply: BN;
-    bump: number;
-}
+import { ProfileType } from "../profile/[address]/page";
 
 export default function Explore() {
     const { creatorProfileAccounts } = useTimeFunProgram();
@@ -91,28 +79,6 @@ export default function Explore() {
             </div>
         </div>
     );
-
-    // return <div>
-    //     <div>
-    //         {/* {creatorProfileAccounts.} */}
-    //         {creatorProfileAccounts.isLoading ? (
-    //             <span className="loading loading-spinner loading-lg"></span>
-    //         ) : creatorProfileAccounts.data?.length ? (
-    //             <div className="mx-10 my-10">
-    //                 <div className="grid md:grid-cols-6 gap-4">
-    //                     {creatorProfileAccounts.data?.map((profile) => (
-    //                         <CreatorCard key={profile.publicKey.toString()} account={profile.publicKey} profile={profile.account} />
-    //                     ))}
-    //                 </div>
-    //             </div>
-    //         ) : (
-    //             <div className="text-center">
-    //                 <h2 className={'text-2xl'}>No accounts</h2>
-    //                 No profile accounts found. Create one above to get started.
-    //             </div>
-    //         )}
-    //     </div>
-    // </div>
 }
 
 function CreatorCard({ account, profile }: { account: PublicKey, profile: ProfileType }) {
@@ -157,15 +123,15 @@ function CreatorCard({ account, profile }: { account: PublicKey, profile: Profil
 
                     {/* Stats */}
                     <div className="flex items-center justify-center gap-4 mb-4 text-xs">
-                        <div className="flex items-center gap-1 text-gray-400">
+                        {/* <div className="flex items-center gap-1 text-gray-400">
                             <Users className="w-3 h-3 text-pink-400" />
                             <span className="font-semibold text-white">{profile.totalSupply.toNumber()}</span>
-                        </div>
-                        <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-                        <div className="flex items-center gap-1 text-gray-400">
+                        </div> */}
+                        {/* <div className="w-1 h-1 bg-gray-600 rounded-full"></div> */}
+                        {/* <div className="flex items-center gap-1 text-gray-400">
                             <TrendingUp className="w-3 h-3 text-pink-400" />
                             <span className="font-semibold text-white">{profile.charsPerToken.toNumber()}</span> chars
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Explore Button */}
@@ -179,16 +145,5 @@ function CreatorCard({ account, profile }: { account: PublicKey, profile: Profil
             </div>
         </div>
     );
-
-    // return <div className="border rounded-xl items-center p-2">
-    //     <Image src={profile.image ?? "/timefunImage"} alt="Image" width={150} height={150} className="self-center" />
-    //     <h1 className="text-2xl font-bold text-center">{profile.name}</h1>
-    //     <Button
-    //         className="bg-pink-500 hover:bg-pink-400 text-white font-bold"
-    //         onClick={() => {
-    //             router.push(`/profile/${account.toBase58()}`)
-    //         }}
-    //     >Explore</Button>
-    // </div>
-  }
+}
   

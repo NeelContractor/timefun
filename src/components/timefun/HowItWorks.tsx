@@ -41,7 +41,7 @@ export default function HowItWorks() {
                             key={index}
                             className="relative group"
                         >
-                            {/* Connection Line */}
+                            {/* Connection Line */} {/** TODO correct css */}
                             {index < steps.length - 1 && (
                                 <div className="hidden md:block absolute top-20 left-full w-full h-0.5 bg-gradient-to-r from-pink-500/50 to-transparent -translate-x-1/2 z-0"></div>
                             )}

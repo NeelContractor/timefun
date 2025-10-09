@@ -18,7 +18,9 @@ pub mod timefun {
         base_price: u64,
         chars_per_token: u64,
         name: String,
+        // short_bio: String,
         bio: String,
+        category: Category,
         image: String,
         social_link: String,
     ) -> Result<()> {
@@ -28,7 +30,9 @@ pub mod timefun {
         creator_profile.base_per_token = base_price;
         creator_profile.chars_per_token = chars_per_token;
         creator_profile.name = name;
+        // creator_profile.short_bio = short_bio;
         creator_profile.bio = bio;
+        creator_profile.category = category;
         creator_profile.image = image;
         creator_profile.social_link = social_link;
         creator_profile.total_supply = 0;
@@ -517,12 +521,15 @@ pub struct CreatorProfile {
     pub creator: Pubkey,
     #[max_len(32)]
     pub name: String, // adding for creating creator's profile card.
-    #[max_len(100)]
+    // #[max_len(50)]
+    // pub short_bio: String, // adding for creating creator's profile card.
+    #[max_len(50)]
     pub bio: String, // adding for creating creator's profile card.
     #[max_len(100)]
     pub image: String, // adding for creating creator's profile card.
-    #[max_len(100)]
+    #[max_len(64)]
     pub social_link: String, // adding for creating creator's profile card.
+    pub category: Category,
     pub creator_token_mint: Pubkey,
     pub base_per_token: u64,    // base price in lamports
     pub chars_per_token: u64,   // how many chars = 1 token
@@ -545,6 +552,21 @@ pub struct Conversation {
 pub enum MessageSender {
     User,
     Creator,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
+pub enum Category {
+    TimeFunTeam,
+    Founders,
+    Influencers,
+    Investors,
+    Designer,
+    Athletes,
+    Solana,
+    Musicians,
+    Media,
+    Companies,
+    Other,
 }
 
 #[event]

@@ -412,6 +412,14 @@ export type Timefun = {
           "type": "string"
         },
         {
+          "name": "category",
+          "type": {
+            "defined": {
+              "name": "category"
+            }
+          }
+        },
+        {
           "name": "image",
           "type": "string"
         },
@@ -983,6 +991,47 @@ export type Timefun = {
   ],
   "types": [
     {
+      "name": "category",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "timeFunTeam"
+          },
+          {
+            "name": "founders"
+          },
+          {
+            "name": "influencers"
+          },
+          {
+            "name": "investors"
+          },
+          {
+            "name": "designer"
+          },
+          {
+            "name": "athletes"
+          },
+          {
+            "name": "solana"
+          },
+          {
+            "name": "musicians"
+          },
+          {
+            "name": "media"
+          },
+          {
+            "name": "companies"
+          },
+          {
+            "name": "other"
+          }
+        ]
+      }
+    },
+    {
       "name": "conversation",
       "type": {
         "kind": "struct",
@@ -1042,6 +1091,14 @@ export type Timefun = {
           {
             "name": "socialLink",
             "type": "string"
+          },
+          {
+            "name": "category",
+            "type": {
+              "defined": {
+                "name": "category"
+              }
+            }
           },
           {
             "name": "creatorTokenMint",
