@@ -4,7 +4,9 @@ import { CarouselNext, CarouselPrevious, Carousel, CarouselApi, CarouselContent,
 import { Card, CardContent } from '../ui/card';
 import { useTimeFunProgram } from './timefun-data-access';
 import Image from 'next/image';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 type CategoryType = "all" | "topCreators" | "founders" | "influencers" | "investors" | "designer" | "athletes" | "solana" | "musicians" | "media" | "timeFunTeam" | "companies" | "other";
 
@@ -24,6 +26,8 @@ type CategoryType = "all" | "topCreators" | "founders" | "influencers" | "invest
 // ];
 
 const getCategoryType = (category: any) => {
+  if (!category) return "other";
+
   const typeKey = Object.keys(category)[0];
   
   switch (typeKey) {
@@ -82,46 +86,25 @@ export default function CategorySelector() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>("all");
   const [category, setCategory] = useState<CategoryType>("all");
 
-  // const filteredProfiles = selectedCategory === "all" 
-  //   ? creatorProfileAccounts.data 
-  //   : creatorProfileAccounts.data?.filter(profile => profile.account.category === selectedCategory);
+  const filteredProfiles = selectedCategory === "all" 
+    ? creatorProfileAccounts.data 
+    : creatorProfileAccounts.data?.filter(profile => 
+        getCategoryType(profile.account.category) === selectedCategory
+    );
 
-  const handleCategorySelect = (id: CategoryType) => {
-    // setSelectedCategory(id); // ✅ no type error now
-    setSelectedCategory(getCategoryType(id));
-  };
+    const handleCategorySelect = (id: CategoryType) => {
+      setSelectedCategory(id);
+    };
 
   return (
+
     <div className="border-y border-pink-500/10 bg-gradient-to-r from-pink-950/5 to-purple-950/5">
         <div className="max-w-7xl mx-auto px-6 py-8">
             <h2 className="text-3xl font-bold mb-6 text-center">
                 Explore by <span className="text-pink-400">Category</span>
             </h2>
-            {/* <div className="overflow-x-auto">
-                <div className="flex gap-3 pb-4 min-w-max my-5 mx-5">
-                    {categoryTabs.map((category) => (
-                      <button
-                        key={category.id}
-                        className="group flex flex-col items-center gap-2 px-6 py-4 bg-gradient-to-br from-pink-950/10 to-purple-950/10 hover:from-pink-950/30 hover:to-purple-950/30 border border-pink-500/20 hover:border-pink-500/50 rounded-xl transition-all duration-300 min-w-[120px] transform hover:scale-105"
-                      >
-                        <span className="text-3xl group-hover:scale-110 transition-transform">
-                          {category.icon}
-                        </span>
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white whitespace-nowrap transition-colors">
-                          {category.name}
-                        </span>
-                      </button>
-                    ))}
-                    {creatorProfileAccounts.data?.map((profile) => (
-                      <div key={profile.publicKey.toString()} className='flex gap-5 border-pink-500 rounded-2xl'>
-                        <Image src={profile.account.image} alt='Image' width={100} height={100} />
-                        <h1 className='font-bold text-xl'>{profile.account.name}</h1>
-                      </div>
-                    ))}
-                </div>
-            </div> */}
 
-            {/* TODO: fix below code */}
+            {/* Category Tabs */}
             <div className="relative mb-12">
                 <button
                     onClick={scrollLeft}
@@ -138,10 +121,9 @@ export default function CategorySelector() {
                     <style>{`#category-scroll::-webkit-scrollbar { display: none; }`}</style>
                     <div className="flex gap-3 pb-4 min-w-max px-12">
                         {categoryTabs.map((category) => (
-                            <button // TODO: fix button not working
+                            <button
                                 key={category.id}
-                                onClick={() => handleCategorySelect(category.id as CategoryType)} // fix this error Argument of type 'string' is not assignable to parameter of type 'CategoryType'.
-                                // onClick={() => handleCategorySelect(category.id)}
+                                onClick={() => handleCategorySelect(category.id as CategoryType)}
                                 className={`group flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all duration-300 min-w-[120px] transform hover:scale-105 ${
                                     selectedCategory === category.id
                                         ? 'bg-gradient-to-br from-pink-600/30 to-purple-600/30 border-2 border-pink-500'
@@ -171,37 +153,161 @@ export default function CategorySelector() {
                 </button>
             </div>
 
-            {/* TODO: improve ui */}
-            <div className='grid grid-cols-8 gap-2'>
-              {creatorProfileAccounts.data
-                ?.filter((profile) => getCategoryType(profile.account.category)) // fix this This comparison appears to be unintentional because the types 'DecodeEnum<{ kind: "enum"; variants: [{ name: "timeFunTeam"; }, { name: "founders"; }, { name: "influencers"; }, { name: "investors"; }, { name: "designer"; }, { name: "athletes"; }, { name: "solana"; }, { ...; }, { ...; }, { ...; }, { ...; }]; }, DecodedHelper<...>>' and 'string' have no overlap.
-                .map((profile) => (
-                  <div key={profile.publicKey.toString()} className='grid self-center border border-pink-500 rounded-xl'> 
-                    <Image src={profile.account.image} alt='Image' width={200} height={200} className='self-center content-center items-center' />
-                    <h1 className='font-bold text-xl text-center'>{profile.account.name}</h1>
-                  </div>
-              ))}  
+            {/* Filtered Results Count */}
+            <div className="mb-6 text-center">
+                <p className="text-gray-400">
+                    Showing <span className="text-pink-400 font-bold">{filteredProfiles?.length || 0}</span> creator{filteredProfiles?.length !== 1 ? 's' : ''}
+                    {selectedCategory !== "all" && (
+                        <span> in <span className="text-pink-400 font-bold">{categoryTabs.find(c => c.id === selectedCategory)?.name}</span></span>
+                    )}
+                </p>
             </div>
+
+            {/* Profile Grid */}
+            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'>
+              {filteredProfiles?.map((profile) => (
+                <Link 
+                  key={profile.publicKey.toString()} 
+                  href={`/profile/${profile.publicKey.toString()}`}
+                  className='group relative bg-gradient-to-br from-pink-950/20 to-purple-950/20 border border-pink-500/20 hover:border-pink-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-pink-500/20'
+                > 
+                  <div className="relative mb-3">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
+                    <div className="relative">
+                      <Image 
+                        src={profile.account.image} 
+                        alt={profile.account.name} 
+                        width={200} 
+                        height={200} 
+                        className='w-full aspect-square object-cover rounded-lg border-2 border-pink-500/30 group-hover:border-pink-500/70 transition-all duration-300' 
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className='font-bold text-sm text-white text-center line-clamp-1 group-hover:text-pink-300 transition-colors'>
+                      {profile.account.name}
+                    </h3>
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                      <TrendingUp className="w-3 h-3 text-pink-400" />
+                      <span className="font-semibold text-pink-400">
+                        {/* {profile.account.basePerToken.toString() ? (profile.account.basePerToken.toNumber() / LAMPORTS_PER_SOL).toFixed(3) : "0"} SOL */}
+                        {profile.account.basePerToken 
+                          ? (parseInt(profile.account.basePerToken.toString()) / LAMPORTS_PER_SOL).toFixed(3) 
+                          : "0"} SOL
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {(!filteredProfiles || filteredProfiles.length === 0) && (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pink-950/20 border border-pink-500/20 mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256" className="text-pink-400">
+                    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">No Creators Found</h3>
+                <p className="text-gray-400">No creators in this category yet. Check back soon!</p>
+              </div>
+            )}
 
         </div>
     </div>
-  );
-    // return (
-    //   <div className="flex grid-flow-col gap-4 border-b">
-    //     {categoryTabs.map((tab) => (
-    //       <button 
-    //         key={tab.id} 
-    //         className="flex flex-col items-center gap-2 p-3 rounded-lg  transition-colors cursor-pointer"
-    //         // className='font-medium outline-none border-b-2 text-elements-lowem border-transparent hover:text-elements-highem-alpha data-[state=active]:border-controls-primary data-[state=active]:text-foreground py-3 px-4 flex flex-col items-center justify-center gap-2 text-base md:px-4 md:py-6 [&>svg]:data-[state=active]:text-elements-accent'
-    //       >
-    //         <div className="flex items-center justify-center">
-    //           {tab.img}
+    // <div className="border-y border-pink-500/10 bg-gradient-to-r from-pink-950/5 to-purple-950/5">
+    //     <div className="max-w-7xl mx-auto px-6 py-8">
+    //         <h2 className="text-3xl font-bold mb-6 text-center">
+    //             Explore by <span className="text-pink-400">Category</span>
+    //         </h2>
+    //         {/* <div className="overflow-x-auto">
+    //             <div className="flex gap-3 pb-4 min-w-max my-5 mx-5">
+    //                 {categoryTabs.map((category) => (
+    //                   <button
+    //                     key={category.id}
+    //                     className="group flex flex-col items-center gap-2 px-6 py-4 bg-gradient-to-br from-pink-950/10 to-purple-950/10 hover:from-pink-950/30 hover:to-purple-950/30 border border-pink-500/20 hover:border-pink-500/50 rounded-xl transition-all duration-300 min-w-[120px] transform hover:scale-105"
+    //                   >
+    //                     <span className="text-3xl group-hover:scale-110 transition-transform">
+    //                       {category.icon}
+    //                     </span>
+    //                     <span className="text-sm font-medium text-gray-300 group-hover:text-white whitespace-nowrap transition-colors">
+    //                       {category.name}
+    //                     </span>
+    //                   </button>
+    //                 ))}
+    //                 {creatorProfileAccounts.data?.map((profile) => (
+    //                   <div key={profile.publicKey.toString()} className='flex gap-5 border-pink-500 rounded-2xl'>
+    //                     <Image src={profile.account.image} alt='Image' width={100} height={100} />
+    //                     <h1 className='font-bold text-xl'>{profile.account.name}</h1>
+    //                   </div>
+    //                 ))}
+    //             </div>
+    //         </div> */}
+
+    //         {/* TODO: fix below code */}
+    //         <div className="relative mb-12">
+    //             <button
+    //                 onClick={scrollLeft}
+    //                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 rounded-full shadow-lg shadow-pink-500/50 transition-all duration-300 transform hover:scale-110"
+    //             >
+    //                 <ChevronLeft className="w-6 h-6 text-white" />
+    //             </button>
+                
+    //             <div 
+    //                 className="overflow-x-auto scrollbar-hide" 
+    //                 id="category-scroll"
+    //                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    //             >
+    //                 <style>{`#category-scroll::-webkit-scrollbar { display: none; }`}</style>
+    //                 <div className="flex gap-3 pb-4 min-w-max px-12">
+    //                     {categoryTabs.map((category) => (
+    //                         <button // TODO: fix button not working
+    //                             key={category.id}
+    //                             onClick={() => handleCategorySelect(category.id as CategoryType)} // fix this error Argument of type 'string' is not assignable to parameter of type 'CategoryType'.
+    //                             // onClick={() => handleCategorySelect(category.id)}
+    //                             className={`group flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all duration-300 min-w-[120px] transform hover:scale-105 ${
+    //                                 selectedCategory === category.id
+    //                                     ? 'bg-gradient-to-br from-pink-600/30 to-purple-600/30 border-2 border-pink-500'
+    //                                     : 'bg-gradient-to-br from-pink-950/10 to-purple-950/10 border border-pink-500/20 hover:border-pink-500/50'
+    //                             }`}
+    //                         >
+    //                             <span className={`text-3xl group-hover:scale-110 transition-transform ${
+    //                                 selectedCategory === category.id ? 'scale-110' : ''
+    //                             }`}>
+    //                                 {category.icon}
+    //                             </span>
+    //                             <span className={`text-sm font-medium whitespace-nowrap transition-colors ${
+    //                                 selectedCategory === category.id ? 'text-white font-bold' : 'text-gray-300 group-hover:text-white'
+    //                             }`}>
+    //                                 {category.name}
+    //                             </span>
+    //                         </button>
+    //                     ))}
+    //                 </div>
+    //             </div>
+                
+    //             <button
+    //                 onClick={scrollRight}
+    //                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 rounded-full shadow-lg shadow-pink-500/50 transition-all duration-300 transform hover:scale-110"
+    //             >
+    //                 <ChevronRight className="w-6 h-6 text-white" />
+    //             </button>
     //         </div>
-    //         <span className="text-sm text-gray-400 hover:text-white whitespace-nowrap">
-    //           {tab.name}
-    //         </span>
-    //       </button>
-    //     ))}
-    //   </div>
-    // );
+
+    //         {/* TODO: improve ui */}
+    //         <div className='grid grid-cols-8 gap-2'>
+    //           {creatorProfileAccounts.data
+    //             ?.filter((profile) => getCategoryType(profile.account.category)) // fix this This comparison appears to be unintentional because the types 'DecodeEnum<{ kind: "enum"; variants: [{ name: "timeFunTeam"; }, { name: "founders"; }, { name: "influencers"; }, { name: "investors"; }, { name: "designer"; }, { name: "athletes"; }, { name: "solana"; }, { ...; }, { ...; }, { ...; }, { ...; }]; }, DecodedHelper<...>>' and 'string' have no overlap.
+    //             .map((profile) => (
+    //               <div key={profile.publicKey.toString()} className='grid self-center border border-pink-500 rounded-xl'> 
+    //                 <Image src={profile.account.image} alt='Image' width={200} height={200} className='self-center content-center items-center' />
+    //                 <h1 className='font-bold text-xl text-center'>{profile.account.name}</h1>
+    //               </div>
+    //           ))}  
+    //         </div>
+
+    //     </div>
+    // </div>
+  );
 }

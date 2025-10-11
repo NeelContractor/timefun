@@ -10,4 +10,4 @@
 - fix eventListeners logic on frontend, let creator see past conversation and new one coming. ..... or fix program to store creator reply to user on chain for better fetching mesasges
 - show creator there withdraw amount and add withdraw functionality probably creator have there own dashboard
 - improve ui few left // TODO add appbar to other pages
-- add /message/[address] proabaly
+- add /message/[address] proabaly, fix ui 

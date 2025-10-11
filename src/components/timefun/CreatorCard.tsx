@@ -163,20 +163,4 @@ function Card({ creator }: { creator: MockedCreatorsType }) {
             </div>
         </div>
     )
-    // return <div className="relative h-[185px] w-[140px] md:h-[248px] md:w-[186px] lg:h-[330px] lg:w-[248px]">
-    //     <div className="relative overflow-hidden rounded-2xl transition-opacity duration-100 md:rounded-[21px] lg:rounded-[28px] lg:group-hover:opacity-0 fill">
-    //         {creator.image}
-    //     </div>
-    //     <div className="absolute inset-x-0 bottom-0 flex h-[66px] flex-col overflow-hidden px-1.5 py-1.5 transition-[height] duration-100 ease-out md:h-[88px] md:px-[9px] md:py-[9px] lg:h-[120px] lg:px-3 lg:py-3 lg:group-hover:h-full lg:group-hover:justify-between lg:group-hover:py-5">
-    //         <div className="text-xl font-bold">
-    //             {creator.name}
-    //         </div>
-    //         <div>
-    //             ${creator.price} /min
-    //         </div>
-    //     </div>
-    //     <div className="text-gray-400 line-clamp-3">
-    //         {creator.description}
-    //     </div>
-    // </div>
 }

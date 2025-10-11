@@ -13,7 +13,6 @@ import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGR
 import BN from 'bn.js'
 
 // IMP
-
 // async function validateTimeRemaining() {
 //   const status = await program.methods
 //     .checkTimeValidity()
@@ -31,18 +30,6 @@ import BN from 'bn.js'
 
 // // Call this every 30 seconds during active conversation
 // setInterval(validateTimeRemaining, 30000);
-
-// TimeFunTeam,
-//     Founders,
-//     Influencers,
-//     Investors,
-//     Designer,
-//     Athletes,
-//     Solana,
-//     Musicians,
-//     Media,
-//     Companies,
-    // Other,
 
 export type CategoryType = 
   | { timeFunTeam: {} } 
