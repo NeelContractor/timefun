@@ -1,7 +1,9 @@
 "use client"
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, MessageCircleMore, UserCircle, UsersIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { WalletButton } from "../solana/solana-provider";
+import Link from "next/link";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 export default function Appbar() {
     const router = useRouter();
@@ -38,6 +40,7 @@ export default function Appbar() {
 
 
 export function SecondaryAppbar() {
+    const { publicKey } = useWallet();
     const router = useRouter();
 
     return (
@@ -64,7 +67,33 @@ export function SecondaryAppbar() {
                             </button>
                         </a>
                     </div> */}
-                    <WalletButton />
+                    <div className="flex justify-center gap-2">
+                        <Link 
+                            href={`/dashboard/${publicKey}`} 
+                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
+                            title="Dashboard"
+                        >
+                            <UserCircle className="hover:text-pink-500" />
+                        </Link>
+                        <Link 
+                            href={"/explore"} 
+                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
+                            title="Explore"
+                        >
+                            <UsersIcon className="hover:text-pink-500" />
+                        </Link>
+                        <Link 
+                            href={"/message"} 
+                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
+                            title="Message"
+                        >
+                            <MessageCircleMore className="hover:text-pink-500" />
+                        </Link>
+                        <div className="self-center">
+                            <WalletButton />
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>

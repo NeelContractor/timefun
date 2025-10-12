@@ -18,7 +18,6 @@ pub mod timefun {
         base_price: u64,
         chars_per_token: u64,
         name: String,
-        // short_bio: String,
         bio: String,
         category: Category,
         image: String,
@@ -30,7 +29,6 @@ pub mod timefun {
         creator_profile.base_per_token = base_price;
         creator_profile.chars_per_token = chars_per_token;
         creator_profile.name = name;
-        // creator_profile.short_bio = short_bio;
         creator_profile.bio = bio;
         creator_profile.category = category;
         creator_profile.image = image;
@@ -180,8 +178,6 @@ pub mod timefun {
         
         // Store/Update message in conversation account
         let conversation = &mut ctx.accounts.conversation;
-        
-        // Check if conversation is being initialized or already exists
         let is_new = conversation.user == Pubkey::default();
         
         if is_new {
@@ -197,6 +193,19 @@ pub mod timefun {
                 .ok_or(TimeFunError::Overflow)?;
         }
         
+        let message_account = &mut ctx.accounts.message_account;
+        message_account.conversation = conversation.key();
+        message_account.sender = ctx.accounts.user.key();
+        message_account.message_content = message_content.clone();
+        message_account.timestamp = Clock::get()?.unix_timestamp;
+        message_account.tokens_burned = tokens_required;
+        message_account.message_index = conversation.total_messages;
+        message_account.sender_type = MessageSender::User;
+        message_account.bump = ctx.bumps.message_account;
+        
+        conversation.total_messages = conversation.total_messages
+            .checked_add(1)
+            .ok_or(TimeFunError::Overflow)?;
         conversation.last_message_from = MessageSender::User;
         conversation.last_message_time = Clock::get()?.unix_timestamp;
         
@@ -273,6 +282,16 @@ pub mod timefun {
         // NO SOL COST - Only blockchain transaction fee
         
         // Update conversation metadata
+        let message_account = &mut ctx.accounts.message_account;
+        message_account.conversation = conversation.key();
+        message_account.sender = ctx.accounts.creator.key();
+        message_account.message_content = message_content.clone();
+        message_account.timestamp = Clock::get()?.unix_timestamp;
+        message_account.tokens_burned = 0;
+        message_account.message_index = conversation.total_messages;
+        message_account.sender_type = MessageSender::Creator;
+        message_account.bump = ctx.bumps.message_account;
+        
         conversation.last_message_from = MessageSender::Creator;
         conversation.last_message_time = Clock::get()?.unix_timestamp;
         conversation.total_messages = conversation.total_messages
@@ -487,6 +506,19 @@ pub struct SendMessage<'info> {
         bump
     )]
     pub conversation: Account<'info, Conversation>,
+
+    #[account(
+        init,
+        payer = user,
+        space = 8 + Message::INIT_SPACE,
+        seeds = [
+            b"message",
+            conversation.key().as_ref(),
+            &conversation.total_messages.to_le_bytes()
+        ],
+        bump
+    )]
+    pub message_account: Account<'info, Message>,
     
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -513,6 +545,21 @@ pub struct CreatorReplyBack<'info> {
         constraint = conversation.creator == creator.key() @ TimeFunError::Unauthorized
     )]
     pub conversation: Account<'info, Conversation>,
+
+    #[account(
+        init,
+        payer = creator,
+        space = 8 + Message::INIT_SPACE,
+        seeds = [
+            b"message",
+            conversation.key().as_ref(),
+            &conversation.total_messages.to_le_bytes()
+        ],
+        bump
+    )]
+    pub message_account: Account<'info, Message>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
@@ -521,8 +568,6 @@ pub struct CreatorProfile {
     pub creator: Pubkey,
     #[max_len(32)]
     pub name: String, // adding for creating creator's profile card.
-    // #[max_len(50)]
-    // pub short_bio: String, // adding for creating creator's profile card.
     #[max_len(50)]
     pub bio: String, // adding for creating creator's profile card.
     #[max_len(100)]
@@ -547,6 +592,21 @@ pub struct Conversation {
     pub total_messages: u64,
     pub bump: u8,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Message {
+    pub conversation: Pubkey,
+    pub sender: Pubkey,
+    #[max_len(500)]
+    pub message_content: String,
+    pub timestamp: i64,
+    pub tokens_burned: u64,
+    pub message_index: u64,
+    pub sender_type: MessageSender,
+    pub bump: u8,
+}
+
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
 pub enum MessageSender {

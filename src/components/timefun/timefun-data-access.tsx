@@ -104,6 +104,11 @@ export function useTimeFunProgram() {
     queryFn: () => program.account.conversation.all(),
   })
 
+  const messageAccounts = useQuery({
+    queryKey: ['message', 'all', { cluster }],
+    queryFn: () => program.account.message.all(),
+  })
+
   const getProgramAccount = useQuery({
     queryKey: ['get-program-account', { cluster }],
     queryFn: () => connection.getParsedAccountInfo(programId),
@@ -253,6 +258,25 @@ export function useTimeFunProgram() {
         program.programId
       );
 
+      // const conversationAccount = await program.account.conversation.fetch(conversationPda);
+
+      let messageIndex = new BN(0);
+      try {
+        const conversationAccount = await program.account.conversation.fetch(conversationPda);
+        messageIndex = conversationAccount.totalMessages;
+      } catch (error) {
+        // Conversation doesn't exist yet, will be created with first message
+        console.log("Conversation not found, creating new one");
+      }
+
+      // Convert BN to little-endian buffer (8 bytes for u64)
+      const messageIndexBuffer = messageIndex.toArrayLike(Buffer, 'le', 8);
+
+      const [messageAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("message"), conversationPda.toBuffer(), messageIndexBuffer],
+        program.programId
+      );
+
       return await program.methods
         .sendMessage(messageContent)
         .accountsStrict({
@@ -262,6 +286,7 @@ export function useTimeFunProgram() {
           creatorTokenMint: creatorProfileAcc.creatorTokenMint,
           userTokenAccount,
           conversation: conversationPda,
+          messageAccount: messageAccountPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId
         })
@@ -271,6 +296,7 @@ export function useTimeFunProgram() {
       transactionToast(signature)
       await creatorProfileAccounts.refetch()
       await conversationAccounts.refetch()
+      await messageAccounts.refetch()
     },
     onError: () => {
       toast.error('Failed to sending message.')
@@ -280,35 +306,55 @@ export function useTimeFunProgram() {
   const creatorReplyBackHandler = useMutation<string, Error, CreatorReplyBackArgs>({
     mutationKey: ['conversation', 'reply', { cluster }],
     mutationFn: async ({ creatorPubkey, messageContent, userPubkey }) => {
-      const [creatorProfilePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('creator_profile'), creatorPubkey.toBuffer()],
-        program.programId
-      ); 
+      try {
+        const [creatorProfilePda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('creator_profile'), creatorPubkey.toBuffer()],
+          program.programId
+        ); 
 
-      const [conversationPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("conversation"), userPubkey.toBuffer(), creatorPubkey.toBuffer()],
-        program.programId
-      );
+        const [conversationPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("conversation"), userPubkey.toBuffer(), creatorPubkey.toBuffer()],
+          program.programId
+        );
 
-      return await program.methods
-        .creatorReplyBack(messageContent)
-        .accountsStrict({ 
-          creator: creatorPubkey,
-          user: userPubkey,
-          creatorProfile: creatorProfilePda,
-          conversation: conversationPda
-        })
-        .rpc()
-      },
+        const conversationAccount = await program.account.conversation.fetch(conversationPda);
+
+        // Convert BN to little-endian buffer (8 bytes for u64)
+        const messageIndexBuffer = conversationAccount.totalMessages.toArrayLike(Buffer, 'le', 8);
+
+        const [messageAccountPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("message"), conversationPda.toBuffer(), messageIndexBuffer],
+          program.programId
+        );
+
+        return await program.methods
+          .creatorReplyBack(messageContent)
+          .accountsStrict({ 
+            creator: creatorPubkey,
+            user: userPubkey,
+            creatorProfile: creatorProfilePda,
+            conversation: conversationPda,
+            messageAccount: messageAccountPda,
+            systemProgram: SystemProgram.programId
+          })
+          .rpc()
+      } catch (error) {
+        console.error("Creator reply error details:", error);
+        throw error;
+      }
+    },
     onSuccess: async (signature) => {
       transactionToast(signature)
       await conversationAccounts.refetch()
       await creatorProfileAccounts.refetch()
+      await messageAccounts.refetch()
     },
-    onError: () => {
-      toast.error('Failed to reply back.')
+    onError: (error: any) => {
+      console.error("Reply error:", error);
+      toast.error(error?.message || 'Failed to reply back.')
     },
   })
+  
   const withdrawFromVaultHandler = useMutation<string, Error, WithdrawFromVaultArgs>({
     mutationKey: ['vault', 'withdraw', { cluster }],
     mutationFn: async ({ creatorPubkey, withdrawAmount }) => {
@@ -354,7 +400,8 @@ export function useTimeFunProgram() {
     sellTokensHandler,
     sendMessageHandler,
     creatorReplyBackHandler,
-    withdrawFromVaultHandler
+    withdrawFromVaultHandler,
+    messageAccounts
   }
 }
 

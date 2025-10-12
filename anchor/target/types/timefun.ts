@@ -287,6 +287,39 @@ export type Timefun = {
               }
             ]
           }
+        },
+        {
+          "name": "messageAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "conversation"
+              },
+              {
+                "kind": "account",
+                "path": "conversation.total_messages",
+                "account": "conversation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -795,6 +828,35 @@ export type Timefun = {
           }
         },
         {
+          "name": "messageAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "conversation"
+              },
+              {
+                "kind": "account",
+                "path": "conversation.total_messages",
+                "account": "conversation"
+              }
+            ]
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -919,6 +981,19 @@ export type Timefun = {
         178,
         32,
         221
+      ]
+    },
+    {
+      "name": "message",
+      "discriminator": [
+        110,
+        151,
+        23,
+        110,
+        198,
+        6,
+        125,
+        181
       ]
     }
   ],
@@ -1115,6 +1190,50 @@ export type Timefun = {
           {
             "name": "totalSupply",
             "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "message",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "conversation",
+            "type": "pubkey"
+          },
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "messageContent",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "tokensBurned",
+            "type": "u64"
+          },
+          {
+            "name": "messageIndex",
+            "type": "u64"
+          },
+          {
+            "name": "senderType",
+            "type": {
+              "defined": {
+                "name": "messageSender"
+              }
+            }
           },
           {
             "name": "bump",

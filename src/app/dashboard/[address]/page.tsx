@@ -22,7 +22,7 @@ interface TokenHolding {
 }
 
 export default function Dashboard() {
-    const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler } = useTimeFunProgram(); // getTokenAccount
+    const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler, program } = useTimeFunProgram(); // getTokenAccount
     const { publicKey } = useWallet();
     const { connection } = useConnection();
     const router = useRouter();
@@ -112,6 +112,31 @@ export default function Dashboard() {
         setSellAmount(0);
         setSelectedCreator(null);
     };
+
+    const handleWithdraw = async() => {
+        if (!publicKey || withdrawAmount <= 0) return;
+        await withdrawFromVaultHandler.mutateAsync({ 
+            creatorPubkey: publicKey, 
+            withdrawAmount: new BN(withdrawAmount) 
+        });
+        setWithdrawAmount(0);
+        // setSelectedCreator(null);
+    };
+
+    const [totalWithdrawAmount, setTotalWithdrawAmount] = useState(0);
+    // TODO : complete this logic to fetch creator's vault account for the total withdraw amount
+    useEffect(() => {
+        (async() => {
+            if (profile) {
+                const [creatorVaultPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from("vault"), profile?.creator.toBuffer()],
+                    program.programId
+                );
+                const acc = await connection.getAccountInfo(creatorVaultPda); // error: failed to get token account balance: Invalid param: could not find account
+                setTotalWithdrawAmount(acc?.lamports ?? 0) ;
+            }
+        })()
+    }, [profile, program, profile?.creator]);
 
     const totalPortfolioValue = tokenHoldings.reduce((sum, holding) => sum + holding.value, 0);
     const totalTokens = tokenHoldings.reduce((sum, holding) => sum + holding.balance, 0);
@@ -358,6 +383,33 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div>
+                {profile && (
+                    <div>
+                        <h1>Withdraw</h1>
+                        <p>Total Withdraw Amount: {totalWithdrawAmount}</p>
+                        <Input 
+                            type="number"
+                            value={withdrawAmount || ''}
+                            onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+                            placeholder="Enter withdraw amount..."
+                            min="1"
+                            // max={tokenHoldings.find(h => h.creator.equals(selectedCreator))?.balance ?? 0}
+                            className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
+                        />
+                        <Button 
+                            type="button"
+                            onClick={handleWithdraw}
+                            disabled={!publicKey || withdrawAmount <= 0}
+                            className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                            <ArrowDownRight className="w-5 h-5 mr-2" />
+                            {withdrawAmount <= 0 ? "Enter Amount" : "Withdraw"}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
