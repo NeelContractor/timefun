@@ -258,8 +258,7 @@ export function useTimeFunProgram() {
         program.programId
       );
 
-      // const conversationAccount = await program.account.conversation.fetch(conversationPda);
-
+      // Try to fetch conversation account, if it doesn't exist, use 0 for message index
       let messageIndex = new BN(0);
       try {
         const conversationAccount = await program.account.conversation.fetch(conversationPda);
@@ -298,8 +297,9 @@ export function useTimeFunProgram() {
       await conversationAccounts.refetch()
       await messageAccounts.refetch()
     },
-    onError: () => {
-      toast.error('Failed to sending message.')
+    onError: (error) => {
+      console.error("Send message error:", error);
+      toast.error('Failed to send message.')
     },
   })
 
@@ -317,7 +317,13 @@ export function useTimeFunProgram() {
           program.programId
         );
 
-        const conversationAccount = await program.account.conversation.fetch(conversationPda);
+        // Check if conversation exists
+        let conversationAccount;
+        try {
+          conversationAccount = await program.account.conversation.fetch(conversationPda);
+        } catch (error) {
+          throw new Error("No conversation exists yet. The user must send the first message.");
+        }
 
         // Convert BN to little-endian buffer (8 bytes for u64)
         const messageIndexBuffer = conversationAccount.totalMessages.toArrayLike(Buffer, 'le', 8);
@@ -338,7 +344,7 @@ export function useTimeFunProgram() {
             systemProgram: SystemProgram.programId
           })
           .rpc()
-      } catch (error) {
+      } catch (error: any) {
         console.error("Creator reply error details:", error);
         throw error;
       }
@@ -351,7 +357,8 @@ export function useTimeFunProgram() {
     },
     onError: (error: any) => {
       console.error("Reply error:", error);
-      toast.error(error?.message || 'Failed to reply back.')
+      const errorMessage = error?.message || 'Failed to reply back.';
+      toast.error(errorMessage);
     },
   })
   
@@ -387,6 +394,39 @@ export function useTimeFunProgram() {
     },
   })
 
+  const getVaultBalance = async (creatorPubkey: PublicKey): Promise<number> => {
+    try {
+      const [vaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), creatorPubkey.toBuffer()],
+        program.programId
+      );
+      
+      const accountInfo = await connection.getAccountInfo(vaultPda);
+      return accountInfo?.lamports ?? 0;
+    } catch (error) {
+      console.error("Error fetching vault balance:", error);
+      return 0;
+    }
+  };
+
+  // Helper function to get token balance
+  const getTokenBalance = async (mint: PublicKey, owner: PublicKey): Promise<number> => {
+    try {
+      const ata = getAssociatedTokenAddressSync(mint, owner);
+      const accountInfo = await connection.getAccountInfo(ata);
+      
+      if (!accountInfo) {
+        return 0;
+      }
+
+      const balance = await connection.getTokenAccountBalance(ata);
+      return Number(balance.value.amount) / Math.pow(10, balance.value.decimals);
+    } catch (error) {
+      console.error("Error getting token balance:", error);
+      return 0;
+    }
+  };
+
   // TODO; add a helper function on event listener on conversation
 
   return {
@@ -401,7 +441,9 @@ export function useTimeFunProgram() {
     sendMessageHandler,
     creatorReplyBackHandler,
     withdrawFromVaultHandler,
-    messageAccounts
+    messageAccounts,
+    getTokenBalance,
+    getVaultBalance,
   }
 }
 

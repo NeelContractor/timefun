@@ -184,32 +184,29 @@ pub mod timefun {
             // First message - initialize conversation
             conversation.user = ctx.accounts.user.key();
             conversation.creator = creator_profile.creator;
-            conversation.total_messages = 1;
+            conversation.total_messages = 0; // Start at 0, will be incremented below
             conversation.bump = ctx.bumps.conversation;
-        } else {
-            // Subsequent message - increment counter
-            conversation.total_messages = conversation.total_messages
-                .checked_add(1)
-                .ok_or(TimeFunError::Overflow)?;
         }
         
+        // Store the message on-chain
         let message_account = &mut ctx.accounts.message_account;
         message_account.conversation = conversation.key();
         message_account.sender = ctx.accounts.user.key();
         message_account.message_content = message_content.clone();
         message_account.timestamp = Clock::get()?.unix_timestamp;
         message_account.tokens_burned = tokens_required;
-        message_account.message_index = conversation.total_messages;
+        message_account.message_index = conversation.total_messages; // Use current count as index
         message_account.sender_type = MessageSender::User;
         message_account.bump = ctx.bumps.message_account;
         
+        // Now increment total messages (only once!)
         conversation.total_messages = conversation.total_messages
             .checked_add(1)
             .ok_or(TimeFunError::Overflow)?;
         conversation.last_message_from = MessageSender::User;
         conversation.last_message_time = Clock::get()?.unix_timestamp;
         
-        // Emit event for off-chain indexing (for message storage in DB)
+        // Emit event for off-chain indexing
         emit!(MessageSent {
             conversation: ctx.accounts.conversation.key(),
             sender: ctx.accounts.user.key(),
