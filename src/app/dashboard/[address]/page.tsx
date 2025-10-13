@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { BN } from "bn.js";
-import { Sparkles, Wallet, TrendingUp, Users, DollarSign, ArrowDownRight, ArrowUpRight, MessageCircle } from "lucide-react";
+import { Sparkles, Wallet, TrendingUp, Users, DollarSign, ArrowDownRight, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
@@ -33,6 +33,7 @@ export default function Dashboard() {
     const [selectedCreator, setSelectedCreator] = useState<PublicKey | null>(null);
     const [tokenHoldings, setTokenHoldings] = useState<TokenHolding[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isCreator, setIsCreator] = useState(false);
 
     const params = useParams()
     const address = useMemo(() => {
@@ -45,6 +46,15 @@ export default function Dashboard() {
             console.log(`Invalid public key`, e)
         }
     }, [params])
+
+    useEffect(() => {
+        (async() => {
+            const isCreatorProfile = creatorProfileAccounts?.data?.filter((filterProfile) => filterProfile.account.creator === address);
+            if (isCreatorProfile) {
+                setIsCreator(true);
+            }
+        })()
+    }, [address, creatorProfileAccounts]);
 
     // Fetch all token holdings for the user
     useEffect(() => {
@@ -62,17 +72,20 @@ export default function Dashboard() {
                     // Get user's token account for this creator
                     const tokenAccount = await getAssociatedTokenAddress(profileAccount.account.creatorTokenMint, publicKey);
                     
-                    // if (tokenAccount && tokenAccount.amount > 0) {
-                    //     const balance = tokenAccount.amount;
-                    //     const value = (profileAccount.account.basePerToken.toNumber() / LAMPORTS_PER_SOL) * balance;
-                        
-                    //     holdings.push({
-                    //         creator: profileAccount.account.creator,
-                    //         profile: profileAccount.account,
-                    //         balance,
-                    //         value
-                    //     });
-                    // }
+                    if (tokenAccount) {
+                        const acc = await connection.getTokenAccountBalance(tokenAccount);
+                        const balance = acc.value.uiAmount;
+                        if (balance) {
+                            const value = (profileAccount.account.basePerToken.toNumber() / LAMPORTS_PER_SOL) * balance;
+                            
+                            holdings.push({
+                                creator: profileAccount.account.creator,
+                                profile: profileAccount.account,
+                                balance,
+                                value
+                            });
+                        }
+                    }
                 } catch (error) {
                     console.log(`Error fetching token account for ${profileAccount.account.name}:`, error);
                 }
@@ -83,7 +96,7 @@ export default function Dashboard() {
         };
 
         fetchTokenHoldings();
-    }, [publicKey, creatorProfileAccounts.data]);
+    }, [publicKey, creatorProfileAccounts.data, connection]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -133,11 +146,11 @@ export default function Dashboard() {
                     [Buffer.from("vault"), profile?.creator.toBuffer()],
                     program.programId
                 );
-                const acc = await connection.getAccountInfo(creatorVaultPda); // error: failed to get token account balance: Invalid param: could not find account
-                setTotalWithdrawAmount(acc?.lamports ?? 0) ;
+                const acc = await connection.getTokenAccountBalance(creatorVaultPda); // error: failed to get token account balance: Invalid param: could not find account
+                setTotalWithdrawAmount(acc.value.uiAmount ?? 0) ;
             }
         })()
-    }, [profile, program, profile?.creator]);
+    }, [profile, program, profile?.creator, connection]);
 
     const totalPortfolioValue = tokenHoldings.reduce((sum, holding) => sum + holding.value, 0);
     const totalTokens = tokenHoldings.reduce((sum, holding) => sum + holding.balance, 0);
@@ -360,7 +373,7 @@ export default function Dashboard() {
                                             {sellAmount > 0 && profile && (
                                                 <div className="bg-pink-500/10 rounded-lg p-3 border border-pink-500/20">
                                                     <div className="flex justify-between items-center text-sm mb-2">
-                                                        <span className="text-gray-300">You'll receive:</span>
+                                                        <span className="text-gray-300">You&apos;ll receive:</span>
                                                         <span className="text-xl font-bold text-pink-400">
                                                             {((profile.basePerToken.toNumber() / LAMPORTS_PER_SOL) * sellAmount * 0.95).toFixed(4)} SOL
                                                         </span>
@@ -383,38 +396,48 @@ export default function Dashboard() {
                                         </div>
                                     </>
                                 )}
+
                             </div>
+                            {/* TODO: correct this logic to show this component if the person is creator */}
+                            {/* <div  className="bg-gradient-to-br from-pink-950/30 to-purple-950/30 rounded-2xl p-6 border border-pink-500/30 backdrop-blur-sm">
+                                {isCreator && (
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-pink-500/20 rounded-lg">
+                                                <Coins className="w-5 h-5 text-pink-400" />
+                                            </div>
+                                            <h2 className="text-xl font-bold text-white">Withdraw</h2>
+                                        </div>
+                                        <p className="text-xl font-bold text-white">Total Withdraw Amount: {totalWithdrawAmount}</p>
+                                        <Input 
+                                            type="number"
+                                            value={withdrawAmount || ''}
+                                            onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+                                            placeholder="Enter withdraw amount..."
+                                            min="1"
+                                            // max={tokenHoldings.find(h => h.creator.equals(selectedCreator))?.balance ?? 0}
+                                            className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
+                                        />
+                                        <Button 
+                                            type="button"
+                                            onClick={handleWithdraw}
+                                            disabled={!publicKey || withdrawAmount <= 0}
+                                            className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
+                                        >
+                                            <ArrowDownRight className="w-5 h-5 mr-2" />
+                                            {withdrawAmount <= 0 ? "Enter Amount" : "Withdraw"}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div> */}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div>
-                {profile && (
-                    <div>
-                        <h1>Withdraw</h1>
-                        <p>Total Withdraw Amount: {totalWithdrawAmount}</p>
-                        <Input 
-                            type="number"
-                            value={withdrawAmount || ''}
-                            onChange={(e) => setWithdrawAmount(Number(e.target.value))}
-                            placeholder="Enter withdraw amount..."
-                            min="1"
-                            // max={tokenHoldings.find(h => h.creator.equals(selectedCreator))?.balance ?? 0}
-                            className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
-                        />
-                        <Button 
-                            type="button"
-                            onClick={handleWithdraw}
-                            disabled={!publicKey || withdrawAmount <= 0}
-                            className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
-                        >
-                            <ArrowDownRight className="w-5 h-5 mr-2" />
-                            {withdrawAmount <= 0 ? "Enter Amount" : "Withdraw"}
-                        </Button>
-                    </div>
-                )}
-            </div>
+            {/* <div>
+                
+            </div> */}
         </div>
     );
 }

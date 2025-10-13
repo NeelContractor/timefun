@@ -1,9 +1,5 @@
 "use client"
-import Image from "next/image";
-import { Button } from "../ui/button";
 import CreatorCard from "./CreatorCard";
-import CategorySelector from "./CategorySelector";
-import HowItWorks from "./HowItWorks";
 import { Search, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 

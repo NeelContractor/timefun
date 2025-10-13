@@ -1,13 +1,9 @@
 "use client"
-import { CategoryType, useTimeFunProgram } from "@/components/timefun/timefun-data-access"
+import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
 import { PublicKey } from "@solana/web3.js";
-import { useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import BN from "bn.js";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Sparkles, TrendingUp, Users } from "lucide-react";
+import { Sparkles, Users } from "lucide-react";
 import { ProfileType } from "../profile/[address]/page";
 
 export default function Explore() {

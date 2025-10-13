@@ -27,6 +27,13 @@ const tabs: Tab[] = [
     {id: "activity", name: "Activity"},
 ];
 
+interface TransactionData {
+    signature: string;
+    timestamp: number;
+    amount: number | undefined;
+    type: string;
+}
+
 export interface ProfileType {
     creator: PublicKey;
     name: string;
@@ -69,8 +76,12 @@ export default function Profile() {
     const { connection } = useConnection();
     const [profile, setProfile] = useState<ProfileType>();
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");  
+    const [userATA, setUserATA] = useState<{address: string, balance: number} | null>(null);
     // const [transactions, setTransaction] = useState<any>(); // fix type
     const [amount, setAmount] = useState(0);
+    const [transactions, setTransactions] = useState<TransactionData[]>([]);
+    const [loadingTransactions, setLoadingTransactions] = useState(false);
+    const [creatorsMint, setCreatorsMint] = useState<Mint | null>(null);
     const params = useParams()
     const address = useMemo(() => {
         if (!params.address) {
@@ -108,16 +119,6 @@ export default function Profile() {
             fetchProfile();
         }
     }, [address, creatorProfileAccounts.data, publicKey]);
-
-    interface TransactionData {
-        signature: string;
-        timestamp: number;
-        amount: number | undefined;
-        type: string;
-    }
-
-    const [transactions, setTransactions] = useState<TransactionData[]>([]);
-    const [loadingTransactions, setLoadingTransactions] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -188,8 +189,6 @@ export default function Profile() {
         }
     }
 
-    const [userATA, setUserATA] = useState<{address: string, balance: number} | null>(null);
-
     const fetchUserTokenAccount = async() => {
         if (!profile?.creatorTokenMint || !publicKey) return;
         
@@ -210,8 +209,6 @@ export default function Profile() {
             setUserATA({ address: '', balance: 0 });
         }
     };
-
-    const [creatorsMint, setCreatorsMint] = useState<Mint | null>(null);
 
     // useEffect(() => {
     //     const fetchProfile = async () => {

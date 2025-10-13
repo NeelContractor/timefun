@@ -1,5 +1,4 @@
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useTimeFunProgram } from "./timefun-data-access";
 
 export default function MessagePage() {
     const { publicKey } = useWallet();

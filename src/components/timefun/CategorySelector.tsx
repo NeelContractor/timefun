@@ -1,10 +1,8 @@
 "use client"
 import { ReactNode, useState } from 'react';
-import { CarouselNext, CarouselPrevious, Carousel, CarouselApi, CarouselContent, CarouselItem } from '../ui/carousel';
-import { Card, CardContent } from '../ui/card';
 import { useTimeFunProgram } from './timefun-data-access';
 import Image from 'next/image';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 

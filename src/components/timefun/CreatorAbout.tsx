@@ -4,9 +4,7 @@ import { Dot, MessageCircleMoreIcon, Sparkles, Star, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useTimeFunProgram } from "./timefun-data-access";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { BN } from "bn.js";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 
@@ -26,7 +24,6 @@ const tabs: Tab[] = [
 export default function CreatorAbout() {
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");
     const { publicKey } = useWallet();
-    const { buyTokensHandler } = useTimeFunProgram();
     const [amount, setAmount] = useState(0);
 
     const handleBuy = async() => {

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Homepage from "./Homepage";
 import CategorySelector from "./CategorySelector";
 import HowItWorks from "./HowItWorks";
