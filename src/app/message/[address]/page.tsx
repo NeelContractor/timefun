@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, Clock, Circle, Loader2, ArrowLeft, Info } from "lucide-react";
+import { WalletButton } from "@/components/solana/solana-provider";
 
 export type LastMessageFrom = { user: {} } | { creator: {} };
 
@@ -574,6 +575,9 @@ export default function Page() {
                             <p className="text-sm text-pink-400 text-center">
                                 Please connect your wallet to send messages
                             </p>
+                            <div className="flex justify-center">
+                                <WalletButton />
+                            </div>
                         </div>
                     )}
                 </div>

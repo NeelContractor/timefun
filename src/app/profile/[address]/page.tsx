@@ -484,7 +484,7 @@ export default function Profile() {
                                                             {transactions.map((tx, i) => (
                                                                 <div key={i} className="flex justify-between items-center p-3 bg-pink-950/20 rounded-lg">
                                                                     <div>
-                                                                        <span className={`font-semibold ${tx.type === 'Buy' ? 'text-green-400' : 'text-red-400'}`}>
+                                                                        <span className={`font-semibold ${tx.type === 'Token Purchase' ? 'text-green-400' : 'text-red-400'}`}>
                                                                             {tx.type}
                                                                         </span>
                                                                         <p className="text-sm text-gray-400">{tx.amount} tokens</p>

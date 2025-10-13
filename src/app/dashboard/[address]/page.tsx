@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { SecondaryAppbar } from "@/components/timefun/Appbar";
+import { WalletButton } from "@/components/solana/solana-provider";
 
 interface TokenHolding {
     creator: PublicKey;
@@ -148,6 +149,9 @@ export default function Dashboard() {
                     <Wallet className="w-16 h-16 text-pink-400 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
                     <p className="text-gray-400">Please connect your wallet to view your dashboard</p>
+                    <div className="flex justify-center">
+                        <WalletButton />
+                    </div>
                 </div>
             </div>
         );

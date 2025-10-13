@@ -9,6 +9,7 @@ import Link from "next/link";
 import { MessageSquare, ChevronRight, Inbox, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import BN from "bn.js";
+import { WalletButton } from "@/components/solana/solana-provider";
 
 interface ConversationWithProfile {
     conversationPubkey: PublicKey;
@@ -117,6 +118,9 @@ export default function Page() {
                         <MessageSquare className="w-16 h-16 text-pink-400 mx-auto mb-4" />
                         <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
                         <p className="text-gray-400">Please connect your wallet to view messages</p>
+                        <div className="flex justify-center">
+                            <WalletButton />
+                        </div>
                     </div>
                 </div>
             </div>
