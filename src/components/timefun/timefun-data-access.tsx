@@ -12,37 +12,18 @@ import { toast } from 'sonner'
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import BN from 'bn.js'
 
-// IMP
-// async function validateTimeRemaining() {
-//   const status = await program.methods
-//     .checkTimeValidity()
-//     .accounts({...})
-//     .view(); // Read-only, no transaction cost
-    
-//   if (status.expired) {
-//     // Show "Time's up!" modal
-//     await endConversation();
-//   } else if (status.lowTime) {
-//     // Show "5 minutes remaining" warning
-//     showLowTimeWarning(status.remaining);
-//   }
-// }
-
-// // Call this every 30 seconds during active conversation
-// setInterval(validateTimeRemaining, 30000);
-
 export type CategoryType = 
-  | { timeFunTeam: {} } 
-  | { founders: {} } 
-  | { influencers: {} } 
-  | { investors: {} } 
-  | { designer: {} } 
-  | { athletes: {} } 
-  | { solana: {} } 
-  | { musicians: {} } 
-  | { media: {} } 
-  | { companies: {} } 
-  | { other: {} };
+  | { timeFunTeam: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { founders: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { influencers: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { investors: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { designer: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { athletes: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { solana: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { musicians: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { media: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { companies: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ } 
+  | { other: {} /* eslint-disable-line @typescript-eslint/no-empty-object-type */ };
 
 
 interface InitializeCreatorArgs {
@@ -127,8 +108,8 @@ export function useTimeFunProgram() {
         program.programId
       );
 
-      let basePrice = new BN(0.1 * LAMPORTS_PER_SOL);
-      let charsPerToken = new BN(100);
+      const basePrice = new BN(0.1 * LAMPORTS_PER_SOL);
+      const charsPerToken = new BN(100);
 
       return await program.methods
         .initializeCreator(basePrice, charsPerToken, name, shortBio, category, image, socialLink) 
@@ -401,6 +382,7 @@ export function useTimeFunProgram() {
         program.programId
       );
       
+      // Get SOL balance directly from the account
       const accountInfo = await connection.getAccountInfo(vaultPda);
       return accountInfo?.lamports ?? 0;
     } catch (error) {
@@ -426,8 +408,6 @@ export function useTimeFunProgram() {
       return 0;
     }
   };
-
-  // TODO; add a helper function on event listener on conversation
 
   return {
     program,

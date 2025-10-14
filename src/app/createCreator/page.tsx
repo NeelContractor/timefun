@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { CheckCircle2, FileText, Image, Link2, Sparkles, User } from "lucide-react"
+import { CheckCircle2, FileText, Link2, Sparkles, User } from "lucide-react"
+import { Image as ImageIcon } from "lucide-react";
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -27,7 +28,6 @@ const categoryOptions = [
 export default function CreateCreator() {
     const [name, setName] = useState("");
     const [shortBio, setShortBio] = useState("");
-    // const [bio, setBio] = useState("");
     const [category, setCategory] = useState<CategoryType>({ other: {} });
     const [selectedCategory, setSelectedCategory] = useState<string>("other");
     const [imageUrl, setImageUrl] = useState<File>();
@@ -41,9 +41,7 @@ export default function CreateCreator() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle form submission
 
-        // TODO: add logic to add image to ipfs then send/ add the ipfs url on chain
         try {
             toast.loading("Uploading image to IPFS...");
         
@@ -70,14 +68,6 @@ export default function CreateCreator() {
                 console.log("IPFS URL:", ipfsUrl);
             }
         
-            // Case 2: imageUrl is already a string (user pasted a URL)
-            // else if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
-            //   ipfsUrl = imageUrl;
-            // } else {
-            //   toast.error("Please upload a valid image or URL.");
-            //   return;
-            // }
-        
             if (!publicKey) {
                 toast.error("Please connect your wallet first.");
                 return;
@@ -89,7 +79,6 @@ export default function CreateCreator() {
                 creatorPubkey: publicKey,
                 name,
                 shortBio,
-                // longBio,
                 category,
                 image: ipfsUrl,
                 socialLink,
@@ -100,9 +89,6 @@ export default function CreateCreator() {
             console.error("Error creating creator profile:", error);
             toast.error("Failed to create profile.");
         }
-
-        // if (!publicKey) return;
-        // await initializeCreatorHandler.mutateAsync({ creatorPubkey: publicKey, name, shortBio, longBio, category, image: imageUrl, socialLink });
     };
 
     return (
@@ -270,15 +256,10 @@ export default function CreateCreator() {
                                 {/* Image URL Field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="imageUrl" className="text-gray-300 font-medium flex items-center gap-2">
-                                        <Image className="w-4 h-4 text-pink-400" />
+                                        <ImageIcon className="w-4 h-4 text-pink-400" />
                                         Profile Image URL
                                     </Label>
                                     <Input 
-                                        // id="imageUrl"
-                                        // type="text" // <Input type="file" />
-                                        // placeholder="https://example.com/image.jpg" 
-                                        // value={imageUrl}
-                                        // onChange={(e) => setImageUrl(e.target.value)}
                                         id="imageUrl"
                                         type="file"
                                         accept="image/*"

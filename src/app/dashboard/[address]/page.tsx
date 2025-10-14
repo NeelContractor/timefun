@@ -6,24 +6,18 @@ import { Input } from "@/components/ui/input";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { BN } from "bn.js";
-import { Sparkles, Wallet, TrendingUp, Users, DollarSign, ArrowDownRight, MessageCircle } from "lucide-react";
+import { Sparkles, Wallet, TrendingUp, Users, DollarSign, ArrowDownRight, MessageCircle, Coins } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { SecondaryAppbar } from "@/components/timefun/Appbar";
 import { WalletButton } from "@/components/solana/solana-provider";
+import { TokenHolding } from "@/lib/types";
 
-interface TokenHolding {
-    creator: PublicKey;
-    profile: ProfileType;
-    balance: number;
-    value: number;
-}
 
 export default function Dashboard() {
-    const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler, program } = useTimeFunProgram(); // getTokenAccount
+    const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler, getVaultBalance } = useTimeFunProgram(); // getTokenAccount
     const { publicKey } = useWallet();
     const { connection } = useConnection();
     const router = useRouter();
@@ -34,27 +28,51 @@ export default function Dashboard() {
     const [tokenHoldings, setTokenHoldings] = useState<TokenHolding[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreator, setIsCreator] = useState(false);
+    const [vaultBalance, setVaultBalance] = useState(0);
+    // const [totalWithdrawAmount, setTotalWithdrawAmount] = useState(0);
 
-    const params = useParams()
-    const address = useMemo(() => {
-        if (!params.address) {
-            return
-        }
-        try {
-            return new PublicKey(params.address)
-        } catch (e) {
-            console.log(`Invalid public key`, e)
-        }
-    }, [params])
+    // const params = useParams()
+    // const address = useMemo(() => {
+    //     if (!params.address) {
+    //         return
+    //     }
+    //     try {
+    //         return new PublicKey(params.address)
+    //     } catch (e) {
+    //         console.log(`Invalid public key`, e)
+    //     }
+    // }, [params])
 
+    // Check if the current user is a creator
     useEffect(() => {
         (async() => {
-            const isCreatorProfile = creatorProfileAccounts?.data?.filter((filterProfile) => filterProfile.account.creator === address);
-            if (isCreatorProfile) {
+            if (!publicKey || !creatorProfileAccounts?.data) return;
+            
+            const userCreatorProfile = creatorProfileAccounts.data.find(
+                (filterProfile) => filterProfile.account.creator.equals(publicKey)
+            );
+            
+            if (userCreatorProfile) {
                 setIsCreator(true);
+                setProfile(userCreatorProfile.account);
             }
         })()
-    }, [address, creatorProfileAccounts]);
+    }, [publicKey, creatorProfileAccounts]);
+
+    // Fetch vault balance for creators
+    useEffect(() => {
+        (async() => {
+            if (isCreator && publicKey && getVaultBalance) {
+                try {
+                    const balance = await getVaultBalance(publicKey);
+                    setVaultBalance(balance / LAMPORTS_PER_SOL);
+                } catch (error) {
+                    console.error("Error fetching vault balance:", error);
+                    setVaultBalance(0);
+                }
+            }
+        })()
+    }, [isCreator, publicKey, getVaultBalance]);
 
     // Fetch all token holdings for the user
     useEffect(() => {
@@ -70,24 +88,27 @@ export default function Dashboard() {
             for (const profileAccount of creatorProfileAccounts.data) {
                 try {
                     // Get user's token account for this creator
-                    const tokenAccount = await getAssociatedTokenAddress(profileAccount.account.creatorTokenMint, publicKey);
+                    const tokenAccount = await getAssociatedTokenAddress(
+                        profileAccount.account.creatorTokenMint, 
+                        publicKey
+                    );
                     
-                    if (tokenAccount) {
-                        const acc = await connection.getTokenAccountBalance(tokenAccount);
-                        const balance = acc.value.uiAmount;
-                        if (balance) {
-                            const value = (profileAccount.account.basePerToken.toNumber() / LAMPORTS_PER_SOL) * balance;
-                            
-                            holdings.push({
-                                creator: profileAccount.account.creator,
-                                profile: profileAccount.account,
-                                balance,
-                                value
-                            });
-                        }
+                    const acc = await connection.getTokenAccountBalance(tokenAccount);
+                    const balance = acc.value.uiAmount;
+                    
+                    if (balance && balance > 0) {
+                        const value = (profileAccount.account.basePerToken.toNumber() / LAMPORTS_PER_SOL) * balance;
+                        
+                        holdings.push({
+                            creator: profileAccount.account.creator,
+                            profile: profileAccount.account,
+                            balance,
+                            value
+                        });
                     }
                 } catch (error) {
-                    console.log(`Error fetching token account for ${profileAccount.account.name}:`, error);
+                    // Token account doesn't exist or has zero balance - skip
+                    console.log(`No tokens for ${profileAccount.account.name}`);
                 }
             }
 
@@ -118,40 +139,40 @@ export default function Dashboard() {
 
     const handleSell = async() => {
         if (!publicKey || !selectedCreator || sellAmount <= 0) return;
-        await sellTokensHandler.mutateAsync({ 
-            sellerPubkey: publicKey, 
-            creatorPubkey: selectedCreator, 
-            amount: new BN(sellAmount) 
-        });
-        setSellAmount(0);
-        setSelectedCreator(null);
+        
+        try {
+            await sellTokensHandler.mutateAsync({ 
+                sellerPubkey: publicKey, 
+                creatorPubkey: selectedCreator, 
+                amount: new BN(sellAmount) 
+            });
+            setSellAmount(0);
+            setSelectedCreator(null);
+        } catch (error) {
+            console.error("Error selling tokens:", error);
+        }
     };
 
     const handleWithdraw = async() => {
         if (!publicKey || withdrawAmount <= 0) return;
-        await withdrawFromVaultHandler.mutateAsync({ 
-            creatorPubkey: publicKey, 
-            withdrawAmount: new BN(withdrawAmount) 
-        });
-        setWithdrawAmount(0);
-        // setSelectedCreator(null);
-    };
-
-    const [totalWithdrawAmount, setTotalWithdrawAmount] = useState(0);
-    // TODO : complete this logic to fetch creator's vault account for the total withdraw amount
-    useEffect(() => {
-        (async() => {
-            if (profile) {
-                const [creatorVaultPda] = PublicKey.findProgramAddressSync(
-                    [Buffer.from("vault"), profile?.creator.toBuffer()],
-                    program.programId
-                );
-                const acc = await connection.getTokenAccountBalance(creatorVaultPda); // error: failed to get token account balance: Invalid param: could not find account
-                setTotalWithdrawAmount(acc.value.uiAmount ?? 0) ;
+        
+        try {
+            await withdrawFromVaultHandler.mutateAsync({ 
+                creatorPubkey: publicKey, 
+                withdrawAmount: new BN(withdrawAmount * LAMPORTS_PER_SOL) 
+            });
+            setWithdrawAmount(0);
+            
+            // Refresh vault balance
+            if (getVaultBalance) {
+                const balance = await getVaultBalance(publicKey);
+                setVaultBalance(balance / LAMPORTS_PER_SOL);
             }
-        })()
-    }, [profile, program, profile?.creator, connection]);
-
+        } catch (error) {
+            console.error("Error withdrawing from vault:", error);
+        }
+    };
+    
     const totalPortfolioValue = tokenHoldings.reduce((sum, holding) => sum + holding.value, 0);
     const totalTokens = tokenHoldings.reduce((sum, holding) => sum + holding.balance, 0);
 
@@ -214,7 +235,7 @@ export default function Dashboard() {
                                 </div>
                                 <span className="text-gray-400 text-sm">Total Tokens</span>
                             </div>
-                            <p className="text-3xl font-bold text-white">{totalTokens}</p>
+                            <p className="text-3xl font-bold text-white">{totalTokens.toFixed(0)}</p>
                             <p className="text-sm text-gray-500 mt-1">Owned</p>
                         </div>
                     </div>
@@ -314,9 +335,10 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    {/* Sell Tokens Panel */}
+                    {/* Side Panel - Sell Tokens or Withdraw */}
                     <div className="lg:col-span-1">
-                        <div className="sticky top-24">
+                        <div className="sticky top-24 space-y-6">
+                            {/* Sell Tokens Panel */}
                             <div className="bg-gradient-to-br from-pink-950/30 to-purple-950/30 rounded-2xl p-6 border border-pink-500/30 backdrop-blur-sm">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-pink-500/20 rounded-lg">
@@ -396,183 +418,58 @@ export default function Dashboard() {
                                         </div>
                                     </>
                                 )}
-
                             </div>
-                            {/* TODO: correct this logic to show this component if the person is creator */}
-                            {/* <div  className="bg-gradient-to-br from-pink-950/30 to-purple-950/30 rounded-2xl p-6 border border-pink-500/30 backdrop-blur-sm">
-                                {isCreator && (
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="p-2 bg-pink-500/20 rounded-lg">
-                                                <Coins className="w-5 h-5 text-pink-400" />
-                                            </div>
-                                            <h2 className="text-xl font-bold text-white">Withdraw</h2>
+
+                            {/* Withdraw Panel - Only for Creators */}
+                            {isCreator && (
+                                <div className="bg-gradient-to-br from-purple-950/30 to-pink-950/30 rounded-2xl p-6 border border-purple-500/30 backdrop-blur-sm">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2 bg-purple-500/20 rounded-lg">
+                                            <Coins className="w-5 h-5 text-purple-400" />
                                         </div>
-                                        <p className="text-xl font-bold text-white">Total Withdraw Amount: {totalWithdrawAmount}</p>
-                                        <Input 
-                                            type="number"
-                                            value={withdrawAmount || ''}
-                                            onChange={(e) => setWithdrawAmount(Number(e.target.value))}
-                                            placeholder="Enter withdraw amount..."
-                                            min="1"
-                                            // max={tokenHoldings.find(h => h.creator.equals(selectedCreator))?.balance ?? 0}
-                                            className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
-                                        />
+                                        <h2 className="text-xl font-bold text-white">Withdraw Earnings</h2>
+                                    </div>
+
+                                    <div className="bg-black/40 rounded-xl p-4 mb-4 border border-purple-500/20">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-400">Available Balance</span>
+                                            <span className="text-2xl font-bold text-purple-400">
+                                                {vaultBalance.toFixed(4)} SOL
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="text-sm text-gray-400 mb-2 block">Withdraw Amount (SOL)</label>
+                                            <Input 
+                                                type="number"
+                                                value={withdrawAmount || ''}
+                                                onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+                                                placeholder="Enter amount..."
+                                                min="0"
+                                                max={vaultBalance}
+                                                step="0.01"
+                                                className="bg-black/40 border-purple-500/30 focus:border-purple-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
+                                            />
+                                        </div>
+
                                         <Button 
                                             type="button"
                                             onClick={handleWithdraw}
-                                            disabled={!publicKey || withdrawAmount <= 0}
-                                            className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
+                                            disabled={!publicKey || withdrawAmount <= 0 || withdrawAmount > vaultBalance}
+                                            className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
                                         >
-                                            <ArrowDownRight className="w-5 h-5 mr-2" />
+                                            <Coins className="w-5 h-5 mr-2" />
                                             {withdrawAmount <= 0 ? "Enter Amount" : "Withdraw"}
                                         </Button>
                                     </div>
-                                )}
-                            </div> */}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-
-            {/* <div>
-                
-            </div> */}
         </div>
     );
 }
-
-// "use client"
-// import { ProfileType } from "@/app/profile/[address]/page";
-// import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
-// import { Button } from "@/components/ui/button";
-// import { Input } from "@/components/ui/input";
-// import { useWallet } from "@solana/wallet-adapter-react";
-// import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-// import { BN } from "bn.js";
-// import { Sparkles } from "lucide-react";
-// import { useParams } from "next/navigation";
-// import { useEffect, useMemo, useState } from "react";
-
-// export default function Dashboard() {
-//     const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler } = useTimeFunProgram();
-//     const { publicKey } = useWallet();
-//     // const [, ] = useState();
-//     const [profile, setProfile] = useState<ProfileType>();
-//     const [sellAmount, setSellAmount] = useState(0);
-//     const [withdrawAmount, setWithdrawAmount] = useState(0);
-
-//     const params = useParams()
-//     const address = useMemo(() => {
-//         if (!params.address) {
-//             return
-//         }
-//         try {
-//             return new PublicKey(params.address)
-//         } catch (e) {
-//             console.log(`Invalid public key`, e)
-//         }
-//     }, [params])
-    
-//     if (!address) {
-//         return <div>Error loading account</div>
-//     }
-
-//     useEffect(() => {
-//         const fetchProfile = async () => {
-//             // Find the matching profile
-//             const matchingProfile = creatorProfileAccounts.data?.find(
-//                 (profile) => profile.publicKey.equals(address) // Use .equals() to compare PublicKeys
-//             );
-            
-//             if (matchingProfile) {
-//                 setProfile(matchingProfile.account);
-//                 console.log('Found profile:', matchingProfile.account);
-//             } else {
-//                 console.log('Profile not found for address:', address.toBase58());
-//             }
-//         };
-        
-//         if (address && creatorProfileAccounts.data) {
-//             fetchProfile();
-//         }
-//     }, [address, creatorProfileAccounts.data]);
-
-//     const handleSell = async() => {
-//         if (!publicKey) return;
-//         // sellTokensHandler.mutateAsync({ sellerPubkey: publicKey, creatorPubkey: , amount: new BN(sellAmount) });
-//     }
-
-//     return (
-//         <div>
-//             <h1>Dashboard</h1>
-//         {/* TODO: list all the creator tokens user owns */}
-//             <div className="flex">
-//                 <div className="w-full md:w-96 bg-gradient-to-br from-pink-950/30 to-purple-950/30 rounded-2xl p-6 border border-pink-500/30 backdrop-blur-sm">
-//                     <div className="flex items-center gap-3 mb-4">
-//                         <div className="p-2 bg-pink-500/20 rounded-lg">
-//                             <Sparkles className="w-5 h-5 text-pink-400" />
-//                         </div>
-//                         <h2 className="text-xl font-bold text-white">Sell Creator Tokens</h2>
-//                     </div>
-                    
-//                     <div className="bg-black/40 rounded-xl p-4 mb-4 border border-pink-500/20">
-//                         <div className="flex justify-between items-center mb-2">
-//                             <span className="text-sm text-gray-400">Price per token</span>
-//                             <span className="text-lg font-bold text-white">
-//                                 {profile?.basePerToken ? (profile.basePerToken.toNumber() / LAMPORTS_PER_SOL).toFixed(4) : "0"} SOL
-//                             </span>
-//                         </div>
-//                         <div className="flex justify-between items-center">
-//                             <span className="text-sm text-gray-400">You'll receive</span>
-//                             <span className="text-sm font-semibold text-pink-400">
-//                                 {profile?.charsPerToken.toNumber() ?? 0} characters
-//                             </span>
-//                         </div>
-//                     </div>
-
-//                     <div className="space-y-3">
-//                         <div>
-//                             <label className="text-sm text-gray-400 mb-2 block">Amount of tokens</label>
-//                             <Input 
-//                                 type="number"
-//                                 value={sellAmount || ''}
-//                                 onChange={(e) => setSellAmount(Number(e.target.value))}
-//                                 placeholder="Enter Sell amount..."
-//                                 min="1"
-//                                 className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 text-lg"
-//                             />
-//                         </div>
-
-//                         {sellAmount > 0 && (
-//                             <div className="bg-pink-500/10 rounded-lg p-3 border border-pink-500/20">
-//                                 <div className="flex justify-between items-center text-sm">
-//                                     <span className="text-gray-300">Total cost:</span>
-//                                     <span className="text-xl font-bold text-pink-400">
-//                                         {profile?.basePerToken ? ((profile.basePerToken.toNumber() / LAMPORTS_PER_SOL) * sellAmount).toFixed(4) : "0"} SOL
-//                                     </span>
-//                                 </div>
-//                                 <div className="flex justify-between items-center text-sm mt-1">
-//                                     <span className="text-gray-400">Characters:</span>
-//                                     <span className="text-white font-semibold">
-//                                         {(profile?.charsPerToken.toNumber() ?? 0) * sellAmount}
-//                                     </span>
-//                                 </div>
-//                             </div>
-//                         )}
-
-//                         <Button 
-//                             type="button"
-//                             onClick={handleSell}
-//                             disabled={!publicKey || !profile || sellAmount <= 0}
-//                             className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
-//                         >
-//                             <Sparkles className="w-5 h-5 mr-2" />
-//                             {!publicKey ? "Connect Wallet" : sellAmount <= 0 ? "Enter Amount" : "Sell Tokens"}
-//                         </Button>
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     )
-// }

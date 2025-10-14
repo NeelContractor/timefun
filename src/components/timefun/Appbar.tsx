@@ -1,6 +1,6 @@
 "use client"
-import { ArrowUpRight, MessageCircleMore, UserCircle, UsersIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowUpRight, Home, MessageCircleMore, UserCircle, UsersIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { WalletButton } from "../solana/solana-provider";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -41,6 +41,14 @@ export default function Appbar() {
 
 export function SecondaryAppbar() {
     const { publicKey } = useWallet();
+    const pathname = usePathname();
+
+    const navItems = [
+        { href: "/", icon: Home, label: "Home" },
+        { href: "/explore", icon: UsersIcon, label: "Explore" },
+        { href: "/message", icon: MessageCircleMore, label: "Messages" },
+        { href: `/dashboard/${publicKey}`, icon: UserCircle, label: "Dashboard", requiresWallet: true },
+    ];
 
     return (
         <div className="border-b border-pink-500/10 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
@@ -53,45 +61,72 @@ export function SecondaryAppbar() {
                         </svg>
                     </Link>
                     
-                    {/* <div className="flex items-center gap-4">
-                        <a href="/explore"> 
-                            <button 
-                                className="group relative px-6 py-2.5 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 rounded-xl font-semibold text-white shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-                                onClick={() => {
-                                    router.push("/explore")
-                                }}
-                            >
-                                Get started
-                                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                            </button>
-                        </a>
-                    </div> */}
-                    <div className="flex justify-center gap-2">
-                        <Link 
-                            href={`/dashboard/${publicKey}`} 
-                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
-                            title="Dashboard"
-                        >
-                            <UserCircle className="hover:text-pink-500" />
-                        </Link>
-                        <Link 
-                            href={"/explore"} 
-                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
-                            title="Explore"
-                        >
-                            <UsersIcon className="hover:text-pink-500" />
-                        </Link>
-                        <Link 
-                            href={"/message"} 
-                            className="self-center border border-none rounded-2xl hover:bg-gray-900 p-3"
-                            title="Message"
-                        >
-                            <MessageCircleMore className="hover:text-pink-500" />
-                        </Link>
-                        <div className="self-center">
-                            <WalletButton />
+                    <div className="flex items-center gap-2">
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-1 mr-2">
+                            {navItems.map((item) => {
+                                if (item.requiresWallet && !publicKey) return null;
+                                
+                                const isActive = pathname === item.href || 
+                                    (item.href !== "/" && pathname?.startsWith(item.href));
+                                const Icon = item.icon;
+                                
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`group relative px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
+                                            isActive
+                                                ? 'bg-gradient-to-r from-pink-600/20 to-pink-500/20 text-pink-400 shadow-lg shadow-pink-500/20'
+                                                : 'text-gray-400 hover:text-pink-400 hover:bg-pink-500/10'
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        <span className="text-sm">{item.label}</span>
+                                        {isActive && (
+                                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"></div>
+                                        )}
+                                    </Link>
+                                );
+                            })}
                         </div>
 
+                        {/* Mobile Navigation */}
+                        <div className="flex md:hidden items-center gap-1">
+                            {navItems.map((item) => {
+                                if (item.requiresWallet && !publicKey) return null;
+                                
+                                const isActive = pathname === item.href || 
+                                    (item.href !== "/" && pathname?.startsWith(item.href));
+                                const Icon = item.icon;
+                                
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`group relative p-3 rounded-xl transition-all duration-300 ${
+                                            isActive
+                                                ? 'bg-gradient-to-r from-pink-600/20 to-pink-500/20 text-pink-400 shadow-lg shadow-pink-500/20'
+                                                : 'text-gray-400 hover:text-pink-400 hover:bg-pink-500/10'
+                                        }`}
+                                        title={item.label}
+                                    >
+                                        <Icon className="w-5 h-5" />
+                                        {isActive && (
+                                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-500 rounded-full"></div>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        {/* Wallet Button */}
+                        <div className="relative">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl blur opacity-30"></div>
+                            <div className="relative">
+                                <WalletButton />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

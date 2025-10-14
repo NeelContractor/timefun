@@ -84,8 +84,6 @@ export function useTransferSol({ address }: { address: PublicKey }) {
     },
     onSuccess: async (signature) => {
       if (signature) {
-        // TODO: Add back Toast
-        // transactionToast(signature)
         console.log('Transaction sent', signature)
       }
       await Promise.all([
@@ -98,7 +96,6 @@ export function useTransferSol({ address }: { address: PublicKey }) {
       ])
     },
     onError: (error) => {
-      // TODO: Add Toast
       console.error(`Transaction failed! ${error}`)
     },
   })
@@ -106,7 +103,6 @@ export function useTransferSol({ address }: { address: PublicKey }) {
 
 export function useRequestAirdrop({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
-  // const transactionToast = useTransactionToast()
   const client = useQueryClient()
 
   return useMutation({
@@ -121,8 +117,6 @@ export function useRequestAirdrop({ address }: { address: PublicKey }) {
       return signature
     },
     onSuccess: async (signature) => {
-      // TODO: Add back Toast
-      // transactionToast(signature)
       console.log('Airdrop sent', signature)
       await Promise.all([
         client.invalidateQueries({
