@@ -1,1 +1,3 @@
 # TimeFun
+
+TimeFun is a Solana-based social monetization protocol where conversation is powered by creator tokens. Each creator mints their own token. Users can buy creator tokens with SOL, send messages that burn tokens based on message length (chars-per-token), and trade tokens back for SOL. Creators can freely reply to fans and withdraw earned SOL from their vaults. Built with Anchor, this contract combines creator monetization and on-chain communication into a seamless decentralized messaging economy.
