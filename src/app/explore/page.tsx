@@ -4,7 +4,8 @@ import { PublicKey } from "@solana/web3.js";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sparkles, Users } from "lucide-react";
-import { ProfileType } from "../profile/[address]/page";
+// import { ProfileType } from "../profile/[address]/page";
+import { CategoryType, ProfileType } from "@/lib/types";
 
 export default function Explore() {
     const { creatorProfileAccounts } = useTimeFunProgram();
@@ -80,25 +81,28 @@ export default function Explore() {
 function CreatorCard({ account, profile }: { account: PublicKey, profile: ProfileType }) {
     const router = useRouter();
 
-    const getCategoryType = (category: any) => {
-        if (!category) return "Other";
-
+    const getCategoryDisplayName = (category: CategoryType): string => {
+        if (!category || typeof category !== 'object') return "Other";
+    
         const typeKey = Object.keys(category)[0];
         
-        switch (typeKey) {
-            case 'timeFunTeam': return "TimeFunTeam";
-            case 'founders': return "Founders";
-            case 'influencers': return "Influencers";
-            case 'investors': return "Investors";
-            case 'designer': return "Designer";
-            case 'athletes': return "Athletes";
-            case 'solana': return "Solana";
-            case 'musicians': return "Musicians";
-            case 'media': return "Media";
-            case 'other': return "Other";
-            default: return "Other";
-        }
+        const categoryNames: Record<string, string> = {
+            'timeFunTeam': 'TimeFun Team',
+            'founders': 'Founders',
+            'influencers': 'Influencers',
+            'investors': 'Investors',
+            'designer': 'Designers',
+            'athletes': 'Athletes',
+            'solana': 'Solana',
+            'musicians': 'Musicians',
+            'media': 'Media',
+            'companies': 'Companies',
+            'other': 'Other'
+        };
+        
+        return categoryNames[typeKey] || "Other";
     };
+    
    
     return (
         <div className="group relative bg-gradient-to-br from-pink-950/10 to-purple-950/10 rounded-2xl border border-pink-500/20 hover:border-pink-500/50 transition-all duration-300 overflow-hidden">
@@ -120,7 +124,7 @@ function CreatorCard({ account, profile }: { account: PublicKey, profile: Profil
                     </div>
                     {/* Creator Badge */}
                     <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-pink-600 to-pink-500 rounded-full text-xs font-semibold text-white shadow-lg shadow-pink-500/50 whitespace-nowrap">
-                        {getCategoryType(profile.category)}
+                        {getCategoryDisplayName(profile.category)}
                     </div>
                 </div>
 

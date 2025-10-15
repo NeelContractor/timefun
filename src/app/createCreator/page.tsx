@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useWallet } from "@solana/wallet-adapter-react"
 import { CheckCircle2, FileText, Link2, Sparkles, User } from "lucide-react"
 import { Image as ImageIcon } from "lucide-react";
+import Image from "next/image"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -31,12 +32,27 @@ export default function CreateCreator() {
     const [category, setCategory] = useState<CategoryType>({ other: {} });
     const [selectedCategory, setSelectedCategory] = useState<string>("other");
     const [imageUrl, setImageUrl] = useState<File>();
+    const [imagePreview, setImagePreview] = useState<string>("");
     const [socialLink, setSocialLink] = useState("");
     const { initializeCreatorHandler } = useTimeFunProgram();
     const { publicKey } = useWallet();
 
     const mapCategoryToType = (key: string): CategoryType => {
         return { [key]: {} } as CategoryType;
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageUrl(file);
+            
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -85,6 +101,15 @@ export default function CreateCreator() {
             });
         
             toast.success("Creator profile created successfully!");
+            
+            // Reset form
+            setName("");
+            setShortBio("");
+            setCategory({ other: {} });
+            setSelectedCategory("other");
+            setImageUrl(undefined);
+            setImagePreview("");
+            setSocialLink("");
         } catch (error) {
             console.error("Error creating creator profile:", error);
             toast.error("Failed to create profile.");
@@ -171,7 +196,7 @@ export default function CreateCreator() {
                                 <p className="text-gray-400">Fill in your details to get started</p>
                             </div>
 
-                            <div className="space-y-6">
+                            <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Name Field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="name" className="text-gray-300 font-medium flex items-center gap-2">
@@ -184,6 +209,8 @@ export default function CreateCreator() {
                                         placeholder="Enter your name" 
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
+                                        required
+                                        maxLength={32}
                                         className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12"
                                     />
                                 </div>
@@ -201,6 +228,7 @@ export default function CreateCreator() {
                                             placeholder="Tell people about yourself..."
                                             value={shortBio}
                                             onChange={(e) => setShortBio(e.target.value)}
+                                            required
                                             rows={2}
                                             className="w-full bg-black/40 border border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
                                         />
@@ -208,28 +236,11 @@ export default function CreateCreator() {
                                             {50 - shortBio.length} characters left
                                         </p>
                                     </div>
-                                    {/* <span className="text-gray-300">{shortBio.length - 50}</span> */}
                                 </div>
-
-                                {/* Long Bio Field */}
-                                {/* <div className="space-y-2">
-                                    <Label htmlFor="bio" className="text-gray-300 font-medium flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-pink-400" />
-                                        Long Bio
-                                    </Label>
-                                    <textarea
-                                        id="bio"
-                                        placeholder="Tell people about yourself..."
-                                        value={longBio}
-                                        onChange={(e) => setLongBio(e.target.value)}
-                                        rows={4}
-                                        className="w-full bg-black/40 border border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
-                                    />
-                                </div> */}
 
                                 {/* Category Field */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="bio" className="text-gray-300 font-medium flex items-center gap-2">
+                                    <Label htmlFor="category" className="text-gray-300 font-medium flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-pink-400" />
                                         Category
                                     </Label>
@@ -240,7 +251,7 @@ export default function CreateCreator() {
                                             setCategory(mapCategoryToType(val));
                                         }}
                                     >
-                                        <SelectTrigger className="w-full px-3 py-2">
+                                        <SelectTrigger className="w-full h-12 bg-black/40 border-pink-500/30 focus:border-pink-500 text-white rounded-xl">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -253,33 +264,31 @@ export default function CreateCreator() {
                                     </Select>
                                 </div>
 
-                                {/* Image URL Field */}
+                                {/* Image Upload Field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="imageUrl" className="text-gray-300 font-medium flex items-center gap-2">
                                         <ImageIcon className="w-4 h-4 text-pink-400" />
-                                        Profile Image URL
+                                        Profile Image
                                     </Label>
                                     <Input 
                                         id="imageUrl"
                                         type="file"
                                         accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) setImageUrl(file);
-                                        }}
-                                        className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12"
+                                        onChange={handleImageChange}
+                                        required
+                                        className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-500/20 file:text-pink-400 hover:file:bg-pink-500/30"
                                     />
-                                    {imageUrl && (
+                                    {imagePreview && (
                                         <div className="mt-3 p-4 bg-black/40 border border-pink-500/20 rounded-xl">
                                             <p className="text-xs text-gray-400 mb-2">Preview:</p>
-                                            <img 
-                                                src={imageUrl} 
-                                                alt="Preview" 
-                                                className="w-24 h-24 rounded-lg object-cover border-2 border-pink-500/30"
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none';
-                                                }}
-                                            />
+                                            <div className="relative w-24 h-24">
+                                                <Image 
+                                                    src={imagePreview} 
+                                                    alt="Profile preview" 
+                                                    fill
+                                                    className="rounded-lg object-cover border-2 border-pink-500/30"
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -292,28 +301,30 @@ export default function CreateCreator() {
                                     </Label>
                                     <Input 
                                         id="social"
-                                        type="text" 
+                                        type="url" 
                                         placeholder="https://twitter.com/yourhandle" 
                                         value={socialLink}
                                         onChange={(e) => setSocialLink(e.target.value)}
+                                        required
+                                        maxLength={64}
                                         className="bg-black/40 border-pink-500/30 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-xl h-12"
                                     />
                                 </div>
 
                                 {/* Submit Button */}
                                 <Button 
-                                    type="button"
-                                    onClick={handleSubmit}
-                                    className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105"
+                                    type="submit"
+                                    disabled={initializeCreatorHandler.isPending || !publicKey}
+                                    className="w-full h-12 bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
                                 >
                                     <Sparkles className="w-5 h-5 mr-2" />
-                                    Create Profile
+                                    {initializeCreatorHandler.isPending ? "Creating..." : !publicKey ? "Connect Wallet" : "Create Profile"}
                                 </Button>
 
                                 <p className="text-center text-sm text-gray-400">
                                     By creating a profile, you agree to our Terms of Service
                                 </p>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>

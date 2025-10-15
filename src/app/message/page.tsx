@@ -11,13 +11,15 @@ import { Input } from "@/components/ui/input";
 import BN from "bn.js";
 import { WalletButton } from "@/components/solana/solana-provider";
 
+type SenderType = { user: Record<string, never> } | { creator: Record<string, never> };
+
 interface ConversationWithProfile {
     conversationPubkey: PublicKey;
     userPubkey: PublicKey;
     creatorPubkey: PublicKey;
     lastMessageTime: BN;
     totalMessages: BN;
-    lastMessageFrom: { user: {} } | { creator: {} };
+    lastMessageFrom: SenderType;
     creatorProfile?: {
         name: string;
         image: string;

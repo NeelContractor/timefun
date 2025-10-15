@@ -1,7 +1,7 @@
 "use client"
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import { Clock, Link2, MessageCircleMore, Sparkles, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,8 +11,9 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import BN from "bn.js";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getAssociatedTokenAddress, Mint } from "@solana/spl-token";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { SecondaryAppbar } from "@/components/timefun/Appbar";
+import { ProfileType } from "@/lib/types";
 
 type TabsTypes = "about" | "market" | "activity";
 
@@ -34,39 +35,40 @@ interface TransactionData {
     type: string;
 }
 
-export interface ProfileType {
-    creator: PublicKey;
-    name: string;
-    bio: string;
-    category: CategoryType;
-    image: string;
-    socialLink: string;
-    creatorTokenMint: PublicKey;
-    basePerToken: BN;
-    charsPerToken: BN;
-    totalSupply: BN;
-    bump: number;
-}
+// export interface ProfileType {
+//     creator: PublicKey;
+//     name: string;
+//     bio: string;
+//     category: CategoryType;
+//     image: string;
+//     socialLink: string;
+//     creatorTokenMint: PublicKey;
+//     basePerToken: BN;
+//     charsPerToken: BN;
+//     totalSupply: BN;
+//     bump: number;
+// }
 
-// TODO: check if the type is correct
-const getCategoryType = (category: Record<string, unknown> | null | undefined): String => {
-    if (!category) return "Other";
+const getCategoryDisplayName = (category: CategoryType | undefined): string => {
+    if (!category || typeof category !== 'object') return "Other";
 
     const typeKey = Object.keys(category)[0];
     
-    switch (typeKey) {
-      case 'timeFunTeam': return "TimeFunTeam";
-      case 'founders': return "Founders";
-      case 'influencers': return "Influencers";
-      case 'investors': return "Investors";
-      case 'designer': return "Designer";
-      case 'athletes': return "Athletes";
-      case 'solana': return "Solana";
-      case 'musicians': return "Musicians";
-      case 'media': return "Media";
-      case 'other': return "Other";
-      default: return "Other";
-    }
+    const categoryNames: Record<string, string> = {
+        'timeFunTeam': 'TimeFun Team',
+        'founders': 'Founders',
+        'influencers': 'Influencers',
+        'investors': 'Investors',
+        'designer': 'Designers',
+        'athletes': 'Athletes',
+        'solana': 'Solana',
+        'musicians': 'Musicians',
+        'media': 'Media',
+        'companies': 'Companies',
+        'other': 'Other'
+    };
+    
+    return categoryNames[typeKey] || "Other";
 };
 
 export default function Profile() {
@@ -77,11 +79,9 @@ export default function Profile() {
     const [profile, setProfile] = useState<ProfileType>();
     const [activeTab, setActiveTab] = useState<TabsTypes>("about");  
     const [userATA, setUserATA] = useState<{address: string, balance: number} | null>(null);
-    // const [transactions, setTransaction] = useState<any>(); // fix type
     const [amount, setAmount] = useState(0);
     const [transactions, setTransactions] = useState<TransactionData[]>([]);
-    const [loadingTransactions, setLoadingTransactions] = useState(false);
-    // const [creatorsMint, setCreatorsMint] = useState<Mint | null>(null);
+    
     const params = useParams()
     const address = useMemo(() => {
         if (!params.address) {
@@ -93,56 +93,9 @@ export default function Profile() {
             console.log(`Invalid public key`, e)
         }
     }, [params])
-    
-    if (!address) {
-        return <div>Error loading account</div>
-    }
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            // Find the matching profile
-            const matchingProfile = creatorProfileAccounts.data?.find(
-                (profile) => profile.publicKey.equals(address) // Use .equals() to compare PublicKeys
-            );
-            
-            if (matchingProfile && publicKey) {
-                setProfile(matchingProfile.account);
-                // connection
-                // await getTransactions(matchingProfile.account.creatorTokenMint, 10);
-                console.log('Found profile:', matchingProfile.account);
-            } else {
-                console.log('Profile not found for address:', address.toBase58());
-            }
-        };
-        
-        if (address && creatorProfileAccounts.data) {
-            fetchProfile();
-        }
-    }, [address, creatorProfileAccounts.data, publicKey]);
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            // Find the matching profile
-            const matchingProfile = creatorProfileAccounts.data?.find(
-                (profile) => profile.publicKey.equals(address)
-            );
-            
-            if (matchingProfile) {
-                setProfile(matchingProfile.account);
-                await getTransactions(matchingProfile.account.creatorTokenMint, 5);
-                console.log('Found profile:', matchingProfile.account);
-            } else {
-                console.log('Profile not found for address:', address.toBase58());
-            }
-        };
-        
-        if (address && creatorProfileAccounts.data) {
-            fetchProfile();
-        }
-    }, [address, creatorProfileAccounts.data]);
-
-    const getTransactions = async(mintAddress: PublicKey, numTx: number) => {
-        setLoadingTransactions(true);
+    // Memoize getTransactions with useCallback
+    const getTransactions = useCallback(async (mintAddress: PublicKey, numTx: number) => {
         try {
             const signatures = await connection.getSignaturesForAddress(mintAddress, { limit: numTx });
             
@@ -184,63 +137,71 @@ export default function Profile() {
             setTransactions(validTransactions);
         } catch (error) {
             console.error('Error fetching transactions:', error);
-        } finally {
-            setLoadingTransactions(false);
         }
-    }
+    }, [connection]);
 
-    const fetchUserTokenAccount = async() => {
-        if (!profile?.creatorTokenMint || !publicKey) return;
-        
-        try {
-            const ata = await getAssociatedTokenAddress(
-                profile.creatorTokenMint,
-                publicKey
+    // Fetch profile and transactions
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (!address || !creatorProfileAccounts.data) return;
+            
+            const matchingProfile = creatorProfileAccounts.data.find(
+                (profile) => profile.publicKey.equals(address)
             );
             
-            const accountInfo = await connection.getTokenAccountBalance(ata);
-            
-            setUserATA({
-                address: ata.toBase58(),
-                balance: accountInfo.value.uiAmount || 0
-            });
-        } catch (error) {
-            console.error('Error fetching user ATA:', error);
-            setUserATA({ address: '', balance: 0 });
-        }
-    };
-
-    // useEffect(() => {
-    //     const fetchProfile = async () => {
-    //         const matchingProfile = creatorProfileAccounts.data?.find(
-    //             (profile) => profile.publicKey.equals(address)
-    //         );
-            
-    //         if (matchingProfile) {
-    //             setProfile(matchingProfile.account);
-    //             await getTransactions(matchingProfile.account.creatorTokenMint, 5);
-    //             const mint = await getMint(connection, matchingProfile.account.creatorTokenMint);
-    //             setCreatorsMint(mint);
-    //             console.log('Found profile:', matchingProfile.account);
-    //         }
-    //     };
+            if (matchingProfile) {
+                setProfile(matchingProfile.account);
+                await getTransactions(matchingProfile.account.creatorTokenMint, 5);
+                console.log('Found profile:', matchingProfile.account);
+            } else {
+                console.log('Profile not found for address:', address.toBase58());
+            }
+        };
         
-    //     if (address && creatorProfileAccounts.data) {
-    //         fetchProfile();
-    //     }
-    // }, [address, creatorProfileAccounts.data]);
-    
-    useEffect(() => {
-        if (profile?.creatorTokenMint && publicKey) {
-            fetchUserTokenAccount();
-        }
-    }, [profile?.creatorTokenMint, publicKey]);
-    
+        fetchProfile();
+    }, [address, creatorProfileAccounts.data, getTransactions]);
 
-    // const getCreatorTokenBalance = async() => {
-    //     if (!profile?.creatorTokenMint ) return;
-    //     getAssociatedTokenAddress(profile?.creatorTokenMint, publicKey);
-    // }
+    // Fetch user token account
+    useEffect(() => {
+        const fetchUserTokenAccount = async () => {
+            if (!profile?.creatorTokenMint || !publicKey) {
+                setUserATA({ address: '', balance: 0 });
+                return;
+            }
+        
+            try {
+                const ata = await getAssociatedTokenAddress(
+                    profile.creatorTokenMint,
+                    publicKey
+                );
+            
+                // Check if account exists first
+                const accountInfo = await connection.getAccountInfo(ata);
+            
+                if (!accountInfo) {
+                    // Account doesn't exist yet - user hasn't bought any tokens
+                    setUserATA({
+                        address: ata.toBase58(),
+                        balance: 0,
+                    });
+                    return;
+                }
+            
+                // Account exists, get the balance
+                const tokenAccountInfo = await connection.getTokenAccountBalance(ata);
+            
+                setUserATA({
+                    address: ata.toBase58(),
+                    balance: tokenAccountInfo.value.uiAmount || 0,
+                });
+            } catch (error) {
+                console.error("Error fetching user ATA:", error);
+                setUserATA({ address: "", balance: 0 });
+            }
+        };
+        
+        fetchUserTokenAccount();
+    }, [profile?.creatorTokenMint, publicKey, connection]);
 
     const handleBuy = async () => {
         if (!publicKey || !profile?.creator || amount <= 0) {
@@ -253,9 +214,27 @@ export default function Profile() {
                 creatorPubkey: profile.creator, 
                 amount: new BN(amount) 
             });
+            
+            // Refresh user token balance after purchase
+            if (profile?.creatorTokenMint && publicKey) {
+                const ata = await getAssociatedTokenAddress(
+                    profile.creatorTokenMint,
+                    publicKey
+                );
+                const tokenAccountInfo = await connection.getTokenAccountBalance(ata);
+                setUserATA({
+                    address: ata.toBase58(),
+                    balance: tokenAccountInfo.value.uiAmount || 0,
+                });
+            }
         } catch (error) {
             console.error('Error buying tokens:', error);
         }
+    }
+
+    // Early return after all hooks
+    if (!address) {
+        return <div>Error loading account</div>
     }
 
     return (
@@ -288,7 +267,7 @@ export default function Profile() {
                                         {profile?.name ?? "Loading..."}
                                     </h1>
                                     <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-600 to-pink-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/50">
-                                        {getCategoryType(profile?.category)}
+                                        {getCategoryDisplayName(profile?.category)}
                                     </span>
                                 </div>
 
@@ -344,7 +323,7 @@ export default function Profile() {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-400">You'll receive</span>
+                                        <span className="text-sm text-gray-400">You&apos;ll receive</span>
                                         <span className="text-sm font-semibold text-pink-400">
                                             {profile?.charsPerToken.toNumber() ?? 0} characters
                                         </span>

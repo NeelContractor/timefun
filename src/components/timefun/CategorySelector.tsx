@@ -5,9 +5,9 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-// import { CategoryType } from '@/lib/types';
+import { CategoryType } from '@/lib/types';
 
-export type CategoryType = "all" | "topCreators" | "founders" | "influencers" | "investors" | "designer" | "athletes" | "solana" | "musicians" | "media" | "timeFunTeam" | "companies" | "other";
+export type CategoryNameType = "all" | "topCreators" | "founders" | "influencers" | "investors" | "designer" | "athletes" | "solana" | "musicians" | "media" | "timeFunTeam" | "companies" | "other";
 
 // const categoryOptions = [
 //   { key: 'all', label: 'Top Creator'},
@@ -24,7 +24,7 @@ export type CategoryType = "all" | "topCreators" | "founders" | "influencers" | 
 //   { key: 'other', label: 'Other'}
 // ];
 
-const getCategoryType = (category: any) => {
+const getCategoryType = (category: CategoryType): string => {
   console.log("type: ", category);
   if (!category) return "other";
 
@@ -83,7 +83,7 @@ const scrollRight = () => {
 
 export default function CategorySelector() {
   const { creatorProfileAccounts } = useTimeFunProgram();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType>("all");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryNameType>("all");
   // const [category, setCategory] = useState<CategoryType>("all");
 
   const filteredProfiles = selectedCategory === "all" 
@@ -92,7 +92,7 @@ export default function CategorySelector() {
         getCategoryType(profile.account.category) === selectedCategory
     );
 
-    const handleCategorySelect = (id: CategoryType) => {
+    const handleCategorySelect = (id: CategoryNameType) => {
       setSelectedCategory(id);
     };
 
@@ -123,7 +123,7 @@ export default function CategorySelector() {
                         {categoryTabs.map((category) => (
                             <button
                                 key={category.id}
-                                onClick={() => handleCategorySelect(category.id as CategoryType)}
+                                onClick={() => handleCategorySelect(category.id as CategoryNameType)}
                                 className={`group flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all duration-300 min-w-[120px] transform hover:scale-105 ${
                                     selectedCategory === category.id
                                         ? 'bg-gradient-to-br from-pink-600/30 to-purple-600/30 border-2 border-pink-500'

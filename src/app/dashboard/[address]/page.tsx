@@ -1,5 +1,5 @@
 "use client"
-import { ProfileType } from "@/app/profile/[address]/page";
+// import { ProfileType } from "@/app/profile/[address]/page";
 import { useTimeFunProgram } from "@/components/timefun/timefun-data-access"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,7 @@ import { useEffect, useState } from "react";
 import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { SecondaryAppbar } from "@/components/timefun/Appbar";
 import { WalletButton } from "@/components/solana/solana-provider";
-import { TokenHolding } from "@/lib/types";
-
+import { ProfileType, TokenHolding } from "@/lib/types";
 
 export default function Dashboard() {
     const { creatorProfileAccounts, withdrawFromVaultHandler, sellTokensHandler, getVaultBalance } = useTimeFunProgram(); // getTokenAccount
@@ -106,8 +105,7 @@ export default function Dashboard() {
                             value
                         });
                     }
-                } catch (error) {
-                    // Token account doesn't exist or has zero balance - skip
+                } catch {
                     console.log(`No tokens for ${profileAccount.account.name}`);
                 }
             }

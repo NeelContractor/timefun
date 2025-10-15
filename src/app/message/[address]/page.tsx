@@ -14,8 +14,10 @@ import { Send, Clock, Circle, Loader2, ArrowLeft, Info, User } from "lucide-reac
 import { WalletButton } from "@/components/solana/solana-provider";
 import { ProfileType } from "@/lib/types";
 
+type SenderType = { user: Record<string, never> } | { creator: Record<string, never> };
+
 export default function Page() {
-    const { conversationAccounts, creatorProfileAccounts, sendMessageHandler, creatorReplyBackHandler, messageAccounts, getVaultBalance } = useTimeFunProgram();
+    const { conversationAccounts, creatorProfileAccounts, sendMessageHandler, creatorReplyBackHandler, messageAccounts } = useTimeFunProgram();
     const { publicKey } = useWallet();
     const [creatorProfile, setCreatorProfile] = useState<ProfileType>();
     const [userProfile, setUserProfile] = useState<ProfileType | null>(null);
@@ -25,8 +27,6 @@ export default function Page() {
     const [otherPersonKey, setOtherPersonKey] = useState<PublicKey>();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [totalWithdrawAmount, setTotalWithdrawAmount] = useState(0);
-    const [isCreator, setIsCreator] = useState(false);
 
     const params = useParams()
     const address = useMemo(() => {
@@ -56,47 +56,6 @@ export default function Page() {
             return undefined;
         }
     }, [params])
-    
-    if (!address) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-xl text-pink-400">Error loading account</p>
-                </div>
-            </div>
-        )
-    }
-
-    // Check if current logged-in user is a creator
-    useEffect(() => {
-        if (!publicKey || !creatorProfileAccounts.data) {
-            setIsCreator(false);
-            return;
-        }
-
-        const myCreatorProfile = creatorProfileAccounts.data.find(
-            (prof) => prof.account.creator.equals(publicKey)
-        );
-
-        setIsCreator(!!myCreatorProfile);
-    }, [publicKey, creatorProfileAccounts.data]);
-
-    // Fetch vault balance for creators
-    useEffect(() => {
-        const fetchVaultBalance = async () => {
-            if (!publicKey || !isCreator || !getVaultBalance) return;
-
-            try {
-                const balance = await getVaultBalance(publicKey);
-                setTotalWithdrawAmount(balance);
-            } catch (error) {
-                console.error("Error fetching vault balance:", error);
-                setTotalWithdrawAmount(0);
-            }
-        };
-
-        fetchVaultBalance();
-    }, [publicKey, isCreator, getVaultBalance]);
 
     // Fetch profiles and determine conversation participants
     useEffect(() => {
@@ -254,7 +213,7 @@ export default function Page() {
         return date.toLocaleDateString();
     }
 
-    const isUserMessage = (senderType: { user: {} } | { creator: {} }) => {
+    const isUserMessage = (senderType: SenderType) => {
         return 'user' in senderType;
     }
 
@@ -304,6 +263,17 @@ export default function Page() {
         
         return { tokens: tokensRequired, sol: costInSOL };
     }, [message, creatorProfile, isCreatorMode]);
+
+    // Early return after all hooks
+    if (!address) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-xl text-pink-400">Error loading account</p>
+                </div>
+            </div>
+        )
+    }
         
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">

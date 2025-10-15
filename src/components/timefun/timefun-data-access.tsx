@@ -244,7 +244,7 @@ export function useTimeFunProgram() {
       try {
         const conversationAccount = await program.account.conversation.fetch(conversationPda);
         messageIndex = conversationAccount.totalMessages;
-      } catch (error) {
+      } catch {
         // Conversation doesn't exist yet, will be created with first message
         console.log("Conversation not found, creating new one");
       }
@@ -302,7 +302,7 @@ export function useTimeFunProgram() {
         let conversationAccount;
         try {
           conversationAccount = await program.account.conversation.fetch(conversationPda);
-        } catch (error) {
+        } catch {
           throw new Error("No conversation exists yet. The user must send the first message.");
         }
 
@@ -325,9 +325,16 @@ export function useTimeFunProgram() {
             systemProgram: SystemProgram.programId
           })
           .rpc()
-      } catch (error: any) {
-        console.error("Creator reply error details:", error);
-        throw error;
+      } catch (error: unknown) {
+        // console.error("Creator reply error details:", error);
+        // throw error;
+        console.error('Creator reply error details:', error);
+        // Safely rethrow while preserving unknown typing
+        if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error('Unknown error occurred in creatorReplyBackHandler');
+        }
       }
     },
     onSuccess: async (signature) => {
@@ -336,9 +343,12 @@ export function useTimeFunProgram() {
       await creatorProfileAccounts.refetch()
       await messageAccounts.refetch()
     },
-    onError: (error: any) => {
-      console.error("Reply error:", error);
-      const errorMessage = error?.message || 'Failed to reply back.';
+    onError: (error: unknown) => {
+      // console.error("Reply error:", error);
+      // const errorMessage = error?.message || 'Failed to reply back.';
+      // toast.error(errorMessage);
+      console.error('Reply error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reply back.';
       toast.error(errorMessage);
     },
   })
