@@ -7,7 +7,7 @@ use anchor_spl::{
     token::{self, Burn, Mint, MintTo, Token, TokenAccount}
 };
 
-declare_id!("FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX");
+declare_id!("Fo2vjm4FaX9dFS4kFgaMsvdxqrVr9XxSb1hxs1YPEEHz");
 
 #[program]
 pub mod timefun {

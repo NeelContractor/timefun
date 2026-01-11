@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/timefun.json`.
  */
 export type Timefun = {
-  "address": "FnKzNmfGD2EZdgRag4ef5zYcFJPXVHzNRUrpM4Q7gdFX",
+  "address": "Fo2vjm4FaX9dFS4kFgaMsvdxqrVr9XxSb1hxs1YPEEHz",
   "metadata": {
     "name": "timefun",
     "version": "0.1.0",
